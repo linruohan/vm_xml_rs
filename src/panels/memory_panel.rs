@@ -6,10 +6,10 @@ use crate::{
 pub struct MemoryPanel;
 
 impl MemoryPanel {
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "💾", "内存配置");
 
-        card_group(ui, "当前内存设置", None, |ui| {
+        card_group(ui, "当前内存设置", None, colors, |ui| {
             grid(ui, "memory_current_grid", 2, |ui| {
                 ui.label("内存大小:");
                 ui.add(egui::Slider::new(&mut config.general.memory.value, 1..=128).text("单位"));
@@ -31,7 +31,7 @@ impl MemoryPanel {
 
         ui.add_space(8.0);
 
-        card_group(ui, "内存后端配置", None, |ui| {
+        card_group(ui, "内存后端配置", None, colors, |ui| {
             let mut has_backing = config.memory_backing.is_some();
             if checkbox(ui, &mut has_backing, "启用内存后端配置") {
                 if has_backing {
@@ -97,7 +97,7 @@ impl MemoryPanel {
 
         ui.add_space(8.0);
 
-        card_group(ui, "内存调优", None, |ui| {
+        card_group(ui, "内存调优", None, colors, |ui| {
             let mut nosharepages = config.memory.nosharepages.unwrap_or(false);
             if checkbox(ui, &mut nosharepages, "禁用内存共享页") {
                 config.memory.nosharepages = Some(nosharepages);

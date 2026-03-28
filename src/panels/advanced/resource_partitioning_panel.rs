@@ -8,10 +8,10 @@ pub struct ResourcePartitioningPanel;
 
 impl ResourcePartitioningPanel {
     /// 显示资源隔离与分区配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔧", "资源隔离与分区配置");
 
-        card_group(ui, "资源分区设置", None, |ui| {
+        card_group(ui, "资源分区设置", None, colors, |ui| {
             let mut has_partitioning = config.resource_partitioning.is_some();
             if checkbox(ui, &mut has_partitioning, "启用资源分区") {
                 if has_partitioning {

@@ -8,10 +8,10 @@ pub struct KeyWrapPanel;
 
 impl KeyWrapPanel {
     /// 显示密钥包装配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔑", "密钥包装配置");
 
-        card_group(ui, "主密钥设置", None, |ui| {
+        card_group(ui, "主密钥设置", None, colors, |ui| {
             let mut has_key_wrap = config.key_wrap.is_some();
             if checkbox(ui, &mut has_key_wrap, "启用密钥包装") {
                 if has_key_wrap {

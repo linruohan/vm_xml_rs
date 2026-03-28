@@ -2,18 +2,16 @@ use egui::RichText;
 
 use crate::{
     model::{CPUModel, CPUTopology, VMConfig},
-    panels::utils::{get_theme_colors, Theme, *},
+    panels::utils::*,
 };
 
 pub struct CPUPanel;
 
 impl CPUPanel {
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
-        let colors = get_theme_colors(Theme::Light);
-
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🖥", "CPU 配置");
 
-        card_group(ui, "CPU 拓扑结构", None, |ui| {
+        card_group(ui, "CPU 拓扑结构", None, colors, |ui| {
             let mut topology = config.cpu.topology.take().unwrap_or(CPUTopology {
                 sockets: 1,
                 dies: Some(1),
@@ -46,9 +44,7 @@ impl CPUPanel {
             let total_vcpus =
                 topology.sockets * topology.dies.unwrap_or(1) * topology.cores * topology.threads;
             ui.label(
-                RichText::new(format!("总 vCPU 数：{}", total_vcpus))
-                    .strong()
-                    .color(colors.info),
+                RichText::new(format!("总 vCPU 数：{}", total_vcpus)).strong().color(colors.info),
             );
 
             config.cpu.topology = Some(topology);
@@ -56,7 +52,7 @@ impl CPUPanel {
 
         ui.add_space(8.0);
 
-        card_group(ui, "CPU 模式", None, |ui| {
+        card_group(ui, "CPU 模式", None, colors, |ui| {
             let cpu_mode = config.cpu.mode.get_or_insert_with(|| "host-passthrough".to_string());
             grid(ui, "cpu_mode_grid", 2, |ui| {
                 ui.label("CPU 模式:");
@@ -78,7 +74,7 @@ impl CPUPanel {
 
         ui.add_space(8.0);
 
-        card_group(ui, "CPU 型号", None, |ui| {
+        card_group(ui, "CPU 型号", None, colors, |ui| {
             let mut has_model = config.cpu.model.is_some();
             if checkbox(ui, &mut has_model, "指定 CPU 型号") {
                 if has_model {

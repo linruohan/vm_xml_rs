@@ -8,10 +8,10 @@ pub struct FibreChannelVMIDPanel;
 
 impl FibreChannelVMIDPanel {
     /// 显示光纤通道虚拟机标识配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔗", "光纤通道 VMID 配置");
 
-        card_group(ui, "VMID 设置", None, |ui| {
+        card_group(ui, "VMID 设置", None, colors, |ui| {
             let mut has_fc_vmid = config.fibre_channel_vmid.is_some();
             if checkbox(ui, &mut has_fc_vmid, "启用光纤通道 VMID") {
                 if has_fc_vmid {

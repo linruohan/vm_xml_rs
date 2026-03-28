@@ -8,10 +8,10 @@ pub struct IOThreadsPanel;
 
 impl IOThreadsPanel {
     /// 显示 IOThreads 配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔄", "IOThreads 配置");
 
-        card_group(ui, "IO 线程设置", None, |ui| {
+        card_group(ui, "IO 线程设置", None, colors, |ui| {
             let mut has_iothreads = config.iothreads.is_some();
             if checkbox(ui, &mut has_iothreads, "启用 IOThreads") {
                 if has_iothreads {
@@ -41,7 +41,7 @@ impl IOThreadsPanel {
                 if let Some(ref mut iothread_list) = iothreads_config.iothreadids {
                     ui.add_space(5.0);
                     ui.horizontal(|ui| {
-                        if add_button(ui, "➕ 添加 IOThread") {
+                        if add_button(ui, "➕ 添加 IOThread", colors) {
                             let new_id = iothread_list.len() as u32 + 1;
                             iothread_list.push(IOThread {
                                 id: new_id,

@@ -8,10 +8,10 @@ pub struct PerformanceMonitoringPanel;
 
 impl PerformanceMonitoringPanel {
     /// 显示性能监控相关事件配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "📈", "性能监控配置");
 
-        card_group(ui, "PMU 设置", None, |ui| {
+        card_group(ui, "PMU 设置", None, colors, |ui| {
             let mut has_perf = config.performance_monitoring.is_some();
             if checkbox(ui, &mut has_perf, "启用性能监控") {
                 if has_perf {
@@ -45,7 +45,7 @@ impl PerformanceMonitoringPanel {
                     }
                     if let Some(ref mut event_list) = perf.events {
                         ui.horizontal(|ui| {
-                            if add_button(ui, "➕ 添加事件") {
+                            if add_button(ui, "➕ 添加事件", colors) {
                                 event_list.push(EventConfig {
                                     name: "cpu-cycles".to_string(),
                                     count: Some(1),

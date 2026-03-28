@@ -10,10 +10,10 @@ const EVENT_ACTIONS: &[&str] = &["destroy", "preserve", "restart", "shutdown", "
 
 impl EventsPanel {
     /// 显示系统事件配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "📅", "系统事件配置");
 
-        card_group(ui, "事件处理策略", None, |ui| {
+        card_group(ui, "事件处理策略", None, colors, |ui| {
             let mut has_events = config.events.is_some();
             if checkbox(ui, &mut has_events, "启用事件配置") {
                 if has_events {

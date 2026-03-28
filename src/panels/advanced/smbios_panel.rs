@@ -8,10 +8,10 @@ pub struct SMBIOSPanel;
 
 impl SMBIOSPanel {
     /// 显示 SMBIOS 配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔬", "SMBIOS 系统信息");
 
-        card_group(ui, "SMBIOS 配置", None, |ui| {
+        card_group(ui, "SMBIOS 配置", None, colors, |ui| {
             let mut has_smbios = config.smbios.is_some();
             if checkbox(ui, &mut has_smbios, "启用 SMBIOS 配置") {
                 if has_smbios {

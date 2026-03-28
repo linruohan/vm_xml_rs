@@ -1,4 +1,4 @@
-use egui::{Color32, RichText, Style, Ui};
+use egui::{Color32, RichText, Ui};
 
 /// 主题枚举
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -149,26 +149,6 @@ impl ThemeColors {
     }
 }
 
-/// 应用全局样式
-pub fn apply_global_style(style: &mut Style, theme: Theme) {
-    let colors = ThemeColors::from_theme(theme);
-
-    // 背景色
-    style.visuals.window_fill = colors.window_fill;
-    style.visuals.panel_fill = colors.panel_fill;
-    style.visuals.override_text_color = Some(colors.text_primary);
-
-    // 输入框样式（TextEdit）
-    style.visuals.widgets.inactive.bg_fill = colors.input_background;
-    style.visuals.widgets.hovered.bg_fill = colors.input_background;
-    style.visuals.widgets.active.bg_fill = colors.input_background;
-    style.visuals.selection.bg_fill = colors.info;
-
-    // 边框颜色
-    style.visuals.window_stroke = egui::Stroke::new(1.0, colors.border_color);
-    style.visuals.selection.stroke = egui::Stroke::new(1.0, colors.input_text);
-}
-
 /// 获取当前主题颜色
 pub fn get_theme_colors(theme: Theme) -> ThemeColors {
     ThemeColors::from_theme(theme)
@@ -181,15 +161,16 @@ pub struct HeadingStyle {
     pub bold: bool,
 }
 
-impl Default for HeadingStyle {
-    fn default() -> Self {
-        Self { size: 18.0, color: Color32::BLACK, bold: true }
+impl HeadingStyle {
+    pub fn with_theme(theme: Theme) -> Self {
+        let colors = get_theme_colors(theme);
+        Self { size: 18.0, color: colors.header_color, bold: true }
     }
 }
 
-/// 显示带样式的标题
+/// 显示带样式的标题 - 支持主题
 pub fn heading(ui: &mut Ui, text: &str, style: Option<HeadingStyle>) {
-    let style = style.unwrap_or_default();
+    let style = style.unwrap_or(HeadingStyle::with_theme(Theme::Light));
     let mut rich_text = RichText::new(text).size(style.size);
     if style.bold {
         rich_text = rich_text.strong();
@@ -231,9 +212,9 @@ pub fn delete_button(ui: &mut Ui, tooltip: Option<&str>) -> bool {
     btn.clicked()
 }
 
-/// 添加按钮
-pub fn add_button(ui: &mut Ui, text: &str) -> bool {
-    let btn = ui.button(RichText::new(text).color(Color32::from_rgb(76, 175, 80)));
+/// 添加按钮 - 支持主题颜色
+pub fn add_button(ui: &mut Ui, text: &str, colors: &ThemeColors) -> bool {
+    let btn = ui.button(RichText::new(text).color(colors.success));
     btn.clicked()
 }
 
@@ -277,12 +258,13 @@ pub fn card_group_with_theme<R>(
         })
 }
 
-/// 标准卡片组（带标题）- 使用默认浅色主题
+/// 标准卡片组（带标题）- 支持主题
 pub fn card_group<R>(
     ui: &mut Ui,
     title: &str,
     icon: Option<&str>,
+    colors: &ThemeColors,
     add_contents: impl FnOnce(&mut Ui) -> R,
 ) -> egui::InnerResponse<R> {
-    card_group_with_theme(ui, title, icon, &ThemeColors::from_theme(Theme::Light), add_contents)
+    card_group_with_theme(ui, title, icon, colors, add_contents)
 }

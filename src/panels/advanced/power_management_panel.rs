@@ -8,10 +8,10 @@ pub struct PowerManagementPanel;
 
 impl PowerManagementPanel {
     /// 显示电源管理策略配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔋", "电源管理策略");
 
-        card_group(ui, "电源选项", None, |ui| {
+        card_group(ui, "电源选项", None, colors, |ui| {
             let mut has_power = config.power_management.is_some();
             if checkbox(ui, &mut has_power, "启用电源管理") {
                 if has_power {

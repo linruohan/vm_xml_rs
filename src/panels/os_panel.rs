@@ -6,10 +6,10 @@ use crate::{
 pub struct OSPanel;
 
 impl OSPanel {
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "💿", "操作系统引导配置");
 
-        card_group(ui, "固件配置", None, |ui| {
+        card_group(ui, "固件配置", None, colors, |ui| {
             let os = config.general.os.as_mut();
 
             if let Some(os) = os {
@@ -113,7 +113,7 @@ impl OSPanel {
 
         ui.add_space(8.0);
 
-        card_group(ui, "引导设备", None, |ui| {
+        card_group(ui, "引导设备", None, colors, |ui| {
             let os = config.general.os.as_mut();
             if let Some(os) = os {
                 if os.boot.is_none() {
@@ -122,7 +122,7 @@ impl OSPanel {
 
                 if let Some(ref mut boot_list) = os.boot {
                     ui.horizontal(|ui| {
-                        if add_button(ui, "➕ 添加引导设备") {
+                        if add_button(ui, "➕ 添加引导设备", colors) {
                             boot_list.push(BootConfig { dev: "hd".to_string() });
                         }
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -165,7 +165,7 @@ impl OSPanel {
 
         ui.add_space(8.0);
 
-        card_group(ui, "引导菜单", None, |ui| {
+        card_group(ui, "引导菜单", None, colors, |ui| {
             let mut has_boot_menu = config.os_booting.boot_menu.is_some();
             if checkbox(ui, &mut has_boot_menu, "启用引导菜单") {
                 if has_boot_menu {

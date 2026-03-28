@@ -8,10 +8,10 @@ pub struct NUMAPanel;
 
 impl NUMAPanel {
     /// 显示 NUMA 配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔢", "NUMA 配置");
 
-        card_group(ui, "NUMA 拓扑设置", None, |ui| {
+        card_group(ui, "NUMA 拓扑设置", None, colors, |ui| {
             let mut has_numa = config.numa.is_some();
             if checkbox(ui, &mut has_numa, "启用 NUMA 配置") {
                 if has_numa {
@@ -32,7 +32,7 @@ impl NUMAPanel {
             if let Some(ref mut numa_config) = config.numa {
                 if let Some(ref mut cell_list) = numa_config.cell {
                     ui.horizontal(|ui| {
-                        if add_button(ui, "➕ 添加 NUMA 节点") {
+                        if add_button(ui, "➕ 添加 NUMA 节点", colors) {
                             let new_id = cell_list.len() as u32;
                             cell_list.push(NUMACell {
                                 id: new_id,

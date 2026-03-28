@@ -8,10 +8,10 @@ pub struct TimeKeepingPanel;
 
 impl TimeKeepingPanel {
     /// 显示时间同步机制配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "⏰", "时间同步机制配置");
 
-        card_group(ui, "时钟设置", None, |ui| {
+        card_group(ui, "时钟设置", None, colors, |ui| {
             let mut has_time = config.time_keeping.is_some();
             if checkbox(ui, &mut has_time, "启用时间同步配置") {
                 if has_time {
@@ -58,7 +58,7 @@ impl TimeKeepingPanel {
                         }
                         if let Some(ref mut timer_list) = clock.timer {
                             ui.horizontal(|ui| {
-                                if add_button(ui, "➕ 添加定时器") {
+                                if add_button(ui, "➕ 添加定时器", colors) {
                                     timer_list.push(TimerConfig {
                                         name: "rtc".to_string(),
                                         present: Some("yes".to_string()),

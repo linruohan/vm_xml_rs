@@ -3,10 +3,10 @@ use crate::{model::VMConfig, panels::utils::*};
 pub struct GeneralPanel;
 
 impl GeneralPanel {
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔧", "基础配置");
 
-        card_group(ui, "虚拟机基本信息", None, |ui| {
+        card_group(ui, "虚拟机基本信息", None, colors, |ui| {
             grid(ui, "general_info_grid", 2, |ui| {
                 // 虚拟机类型
                 ui.label("虚拟机类型:");
@@ -64,7 +64,7 @@ impl GeneralPanel {
 
         ui.add_space(8.0);
 
-        card_group(ui, "CPU 和内存配置", None, |ui| {
+        card_group(ui, "CPU 和内存配置", None, colors, |ui| {
             grid(ui, "general_resources_grid", 2, |ui| {
                 // vCPU 数量
                 ui.label("vCPU 数量:");

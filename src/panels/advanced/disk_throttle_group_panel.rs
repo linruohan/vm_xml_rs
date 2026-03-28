@@ -8,10 +8,10 @@ pub struct DiskThrottleGroupPanel;
 
 impl DiskThrottleGroupPanel {
     /// 显示磁盘 I/O 限流组配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "⏱", "磁盘 I/O 限流组配置");
 
-        card_group(ui, "限流组设置", None, |ui| {
+        card_group(ui, "限流组设置", None, colors, |ui| {
             let mut has_throttle = config.disk_throttle_group.is_some();
             if checkbox(ui, &mut has_throttle, "启用磁盘限流组") {
                 if has_throttle {

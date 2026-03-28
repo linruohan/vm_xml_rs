@@ -8,10 +8,10 @@ pub struct BlockIOTuningPanel;
 
 impl BlockIOTuningPanel {
     /// 显示块设备 I/O 调优配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "💽", "块设备 I/O 调优");
 
-        card_group(ui, "I/O 权重设置", None, |ui| {
+        card_group(ui, "I/O 权重设置", None, colors, |ui| {
             let mut has_tuning = config.blockio_tuning.is_some();
             if checkbox(ui, &mut has_tuning, "启用块设备 I/O 调优") {
                 if has_tuning {
@@ -35,7 +35,7 @@ impl BlockIOTuningPanel {
                     }
                     if let Some(ref mut device_list) = tuning.device_weight {
                         ui.horizontal(|ui| {
-                            if add_button(ui, "➕ 添加设备权重") {
+                            if add_button(ui, "➕ 添加设备权重", colors) {
                                 device_list
                                     .push(DeviceWeight { dev: "sda".to_string(), weight: 500 });
                             }

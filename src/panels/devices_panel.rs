@@ -10,24 +10,24 @@ use crate::{
 pub struct DevicesPanel;
 
 impl DevicesPanel {
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔌", "设备配置");
 
-        Self::show_graphics(ui, config);
+        Self::show_graphics(ui, config, colors);
         ui.add_space(8.0);
-        Self::show_video(ui, config);
+        Self::show_video(ui, config, colors);
         ui.add_space(8.0);
-        Self::show_disks(ui, config);
+        Self::show_disks(ui, config, colors);
         ui.add_space(8.0);
-        Self::show_network(ui, config);
+        Self::show_network(ui, config, colors);
         ui.add_space(8.0);
-        Self::show_input(ui, config);
+        Self::show_input(ui, config, colors);
         ui.add_space(8.0);
-        Self::show_tpm(ui, config);
+        Self::show_tpm(ui, config, colors);
     }
 
-    fn show_graphics(ui: &mut egui::Ui, config: &mut VMConfig) {
-        card_group(ui, "图形显示", Some("🖥"), |ui| {
+    fn show_graphics(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
+        card_group(ui, "图形显示", Some("🖥"), colors, |ui| {
             let mut has_graphics = config.devices.graphics.is_some();
             if checkbox(ui, &mut has_graphics, "启用图形显示") {
                 if has_graphics {
@@ -101,8 +101,8 @@ impl DevicesPanel {
         });
     }
 
-    fn show_video(ui: &mut egui::Ui, config: &mut VMConfig) {
-        card_group(ui, "视频设备", Some("📺"), |ui| {
+    fn show_video(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
+        card_group(ui, "视频设备", Some("📺"), colors, |ui| {
             let mut has_video = config.devices.video.is_some();
             if checkbox(ui, &mut has_video, "启用视频设备") {
                 if has_video {
@@ -178,15 +178,15 @@ impl DevicesPanel {
         });
     }
 
-    fn show_disks(ui: &mut egui::Ui, config: &mut VMConfig) {
-        card_group(ui, "磁盘设备", Some("💽"), |ui| {
+    fn show_disks(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
+        card_group(ui, "磁盘设备", Some("💽"), colors, |ui| {
             if config.devices.disk.is_none() {
                 config.devices.disk = Some(Vec::new());
             }
 
             if let Some(ref mut disk_list) = config.devices.disk {
                 ui.horizontal(|ui| {
-                    if add_button(ui, "➕ 添加磁盘") {
+                    if add_button(ui, "➕ 添加磁盘", colors) {
                         disk_list.push(Self::create_default_disk(disk_list.len()));
                     }
                 });
@@ -387,15 +387,15 @@ impl DevicesPanel {
         });
     }
 
-    fn show_network(ui: &mut egui::Ui, config: &mut VMConfig) {
-        card_group(ui, "网络接口", Some("🌐"), |ui| {
+    fn show_network(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
+        card_group(ui, "网络接口", Some("🌐"), colors, |ui| {
             if config.devices.interface.is_none() {
                 config.devices.interface = Some(Vec::new());
             }
 
             if let Some(ref mut iface_list) = config.devices.interface {
                 ui.horizontal(|ui| {
-                    if add_button(ui, "➕ 添加网络接口") {
+                    if add_button(ui, "➕ 添加网络接口", colors) {
                         iface_list.push(Self::create_default_interface());
                     }
                 });
@@ -509,15 +509,15 @@ impl DevicesPanel {
         });
     }
 
-    fn show_input(ui: &mut egui::Ui, config: &mut VMConfig) {
-        card_group(ui, "输入设备", Some("⌨"), |ui| {
+    fn show_input(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
+        card_group(ui, "输入设备", Some("⌨"), colors, |ui| {
             if config.devices.input.is_none() {
                 config.devices.input = Some(Vec::new());
             }
 
             if let Some(ref mut input_list) = config.devices.input {
                 ui.horizontal(|ui| {
-                    if add_button(ui, "➕ 添加输入设备") {
+                    if add_button(ui, "➕ 添加输入设备", colors) {
                         input_list.push(InputConfig {
                             input_type: "tablet".to_string(),
                             bus: Some("usb".to_string()),
@@ -584,8 +584,8 @@ impl DevicesPanel {
         });
     }
 
-    fn show_tpm(ui: &mut egui::Ui, config: &mut VMConfig) {
-        card_group(ui, "TPM 设备", Some("🔒"), |ui| {
+    fn show_tpm(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
+        card_group(ui, "TPM 设备", Some("🔒"), colors, |ui| {
             let mut has_tpm = config.devices.tpm.is_some();
             if checkbox(ui, &mut has_tpm, "启用 TPM") {
                 if has_tpm {

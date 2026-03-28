@@ -8,10 +8,10 @@ pub struct LaunchSecurityPanel;
 
 impl LaunchSecurityPanel {
     /// 显示启动安全配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🛡️", "启动安全配置");
 
-        card_group(ui, "启动安全设置", None, |ui| {
+        card_group(ui, "启动安全设置", None, colors, |ui| {
             let mut has_launch_security = config.launch_security.is_some();
             if checkbox(ui, &mut has_launch_security, "启用启动安全") {
                 if has_launch_security {

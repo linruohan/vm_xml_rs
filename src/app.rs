@@ -83,6 +83,18 @@ impl VMConfigApp {
         style.visuals.window_stroke = egui::Stroke::new(1.0, colors.border_color);
         style.visuals.selection.stroke = egui::Stroke::new(1.0, colors.input_text);
 
+        // 输入框边框颜色
+        style.visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, colors.input_border);
+        style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, colors.input_border);
+        style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0, colors.input_border);
+
+        // 下拉菜单样式
+        style.visuals.widgets.noninteractive.bg_fill = colors.input_background;
+        style.visuals.widgets.noninteractive.bg_stroke =
+            egui::Stroke::new(1.0, colors.input_border);
+        style.visuals.widgets.noninteractive.fg_stroke =
+            egui::Stroke::new(1.0, colors.text_primary);
+
         ctx.set_style(style);
     }
 
@@ -232,29 +244,35 @@ impl VMConfigApp {
     }
 
     fn show_tab_content(&mut self, ui: &mut egui::Ui) {
+        let colors = get_theme_colors(self.current_theme);
+
         match self.current_tab {
-            Tab::General => GeneralPanel::show(ui, &mut self.config),
-            Tab::OS => OSPanel::show(ui, &mut self.config),
-            Tab::Cpu => CPUPanel::show(ui, &mut self.config),
-            Tab::Memory => MemoryPanel::show(ui, &mut self.config),
-            Tab::Devices => DevicesPanel::show(ui, &mut self.config),
-            Tab::AdvancedSMBIOS => SMBIOSPanel::show(ui, &mut self.config),
-            Tab::AdvancedIOThreads => IOThreadsPanel::show(ui, &mut self.config),
-            Tab::AdvancedCPUTuning => CPUTuningPanel::show(ui, &mut self.config),
-            Tab::AdvancedMemoryTuning => MemoryTuningPanel::show(ui, &mut self.config),
-            Tab::AdvancedNUMA => NUMAPanel::show(ui, &mut self.config),
-            Tab::AdvancedBlockIO => BlockIOTuningPanel::show(ui, &mut self.config),
-            Tab::AdvancedResource => ResourcePartitioningPanel::show(ui, &mut self.config),
-            Tab::AdvancedFCVMID => FibreChannelVMIDPanel::show(ui, &mut self.config),
-            Tab::AdvancedEvents => EventsPanel::show(ui, &mut self.config),
-            Tab::AdvancedPower => PowerManagementPanel::show(ui, &mut self.config),
-            Tab::AdvancedDiskThrottle => DiskThrottleGroupPanel::show(ui, &mut self.config),
-            Tab::AdvancedHypervisor => HypervisorFeaturesPanel::show(ui, &mut self.config),
-            Tab::AdvancedTime => TimeKeepingPanel::show(ui, &mut self.config),
-            Tab::AdvancedPerformance => PerformanceMonitoringPanel::show(ui, &mut self.config),
-            Tab::AdvancedSecurity => SecurityLabelPanel::show(ui, &mut self.config),
-            Tab::AdvancedKeyWrap => KeyWrapPanel::show(ui, &mut self.config),
-            Tab::AdvancedLaunchSecurity => LaunchSecurityPanel::show(ui, &mut self.config),
+            Tab::General => GeneralPanel::show(ui, &mut self.config, &colors),
+            Tab::OS => OSPanel::show(ui, &mut self.config, &colors),
+            Tab::Cpu => CPUPanel::show(ui, &mut self.config, &colors),
+            Tab::Memory => MemoryPanel::show(ui, &mut self.config, &colors),
+            Tab::Devices => DevicesPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedSMBIOS => SMBIOSPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedIOThreads => IOThreadsPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedCPUTuning => CPUTuningPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedMemoryTuning => MemoryTuningPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedNUMA => NUMAPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedBlockIO => BlockIOTuningPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedResource => ResourcePartitioningPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedFCVMID => FibreChannelVMIDPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedEvents => EventsPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedPower => PowerManagementPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedDiskThrottle => {
+                DiskThrottleGroupPanel::show(ui, &mut self.config, &colors)
+            },
+            Tab::AdvancedHypervisor => HypervisorFeaturesPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedTime => TimeKeepingPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedPerformance => {
+                PerformanceMonitoringPanel::show(ui, &mut self.config, &colors)
+            },
+            Tab::AdvancedSecurity => SecurityLabelPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedKeyWrap => KeyWrapPanel::show(ui, &mut self.config, &colors),
+            Tab::AdvancedLaunchSecurity => LaunchSecurityPanel::show(ui, &mut self.config, &colors),
         }
     }
 
@@ -266,7 +284,9 @@ impl VMConfigApp {
             ui.horizontal(|ui| {
                 if let Some((msg, success)) = &self.status_message {
                     let text_color = if *success { colors.success } else { colors.error };
-                    let text = RichText::new(format!("{} {}", if *success { "✅" } else { "❌" }, msg)).color(text_color);
+                    let text =
+                        RichText::new(format!("{} {}", if *success { "✅" } else { "❌" }, msg))
+                            .color(text_color);
                     ui.label(text);
                 } else {
                     ui.label(RichText::new("就绪").color(colors.status_ready));
@@ -409,16 +429,16 @@ impl eframe::App for VMConfigApp {
                     ui.vertical(|ui| {
                         ui.horizontal(|ui| {
                             ui.label(
-                                RichText::new("📄 XML 预览")
-                                    .strong()
-                                    .size(16.0)
-                                    .color(colors.info),
+                                RichText::new("📄 XML 预览").strong().size(16.0).color(colors.info),
                             );
-                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                if ui.small_button("✕ 关闭").clicked() {
-                                    self.show_xml_preview = false;
-                                }
-                            });
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.small_button("✕ 关闭").clicked() {
+                                        self.show_xml_preview = false;
+                                    }
+                                },
+                            );
                         });
                         ui.add_space(5.0);
                         ui.separator();

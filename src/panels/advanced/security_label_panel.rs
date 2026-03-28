@@ -8,10 +8,10 @@ pub struct SecurityLabelPanel;
 
 impl SecurityLabelPanel {
     /// 显示安全标签配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔒", "安全标签配置");
 
-        card_group(ui, "安全设置", None, |ui| {
+        card_group(ui, "安全设置", None, colors, |ui| {
             let mut has_security = config.security_label.is_some();
             if checkbox(ui, &mut has_security, "启用安全标签") {
                 if has_security {

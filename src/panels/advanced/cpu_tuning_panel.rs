@@ -8,10 +8,10 @@ pub struct CPUTuningPanel;
 
 impl CPUTuningPanel {
     /// 显示 CPU 调优配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "⚡", "CPU 调优");
 
-        card_group(ui, "CPU 绑定设置", None, |ui| {
+        card_group(ui, "CPU 绑定设置", None, colors, |ui| {
             let mut has_tuning = config.cpu_tuning.is_some();
             if checkbox(ui, &mut has_tuning, "启用 CPU 调优") {
                 if has_tuning {
@@ -30,7 +30,7 @@ impl CPUTuningPanel {
                     }
                     if let Some(ref mut pin_list) = tuning.vcpupin {
                         ui.horizontal(|ui| {
-                            if add_button(ui, "➕ 添加 vCPU 绑定") {
+                            if add_button(ui, "➕ 添加 vCPU 绑定", colors) {
                                 pin_list.push(VCPUPin {
                                     vcpu: pin_list.len() as u32,
                                     cpuset: "0".to_string(),

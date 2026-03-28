@@ -8,10 +8,10 @@ pub struct MemoryTuningPanel;
 
 impl MemoryTuningPanel {
     /// 显示内存调优配置面板
-    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+    pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "📊", "内存调优");
 
-        card_group(ui, "内存限制设置", None, |ui| {
+        card_group(ui, "内存限制设置", None, colors, |ui| {
             let mut has_tuning = config.memory_tuning.is_some();
             if checkbox(ui, &mut has_tuning, "启用内存调优") {
                 if has_tuning {
