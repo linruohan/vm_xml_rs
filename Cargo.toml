@@ -19,7 +19,6 @@ quick-xml = { version = "0.38.4", features = ["serialize", "serde-types"] }
 serde-xml-rs = "0.8.2"
 uuid = { version = "1.7", features = ["v4", "serde"] }
 rfd = "0.14"
-xmlformat = "1.2.1"
 
 [profile.release]
 opt-level = 2

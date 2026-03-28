@@ -76,147 +76,120 @@ impl XMLGenerator {
             .map_err(|e| format!("关闭 domain 标签失败：{}", e))?;
 
         let result = writer.into_inner().into_inner();
-        let xml = String::from_utf8(result).map_err(|e| format!("转换 UTF-8 失败：{}", e))?;
-
-        // 使用 xmlformat 格式化输出
-        let formatter = xmlformat::Formatter::default();
-        match formatter.format_xml(&xml) {
-            Ok(formatted) => Ok(formatted),
-            Err(_) => Ok(xml),
-        }
+        String::from_utf8(result).map_err(|e| format!("转换 UTF-8 失败：{}", e))
     }
 
     /// 格式化 XML，添加缩进
     pub fn format_xml(xml: &str) -> String {
-        let formatter = xmlformat::Formatter::default();
-        match formatter.format_xml(xml) {
-            Ok(formatted) => formatted,
-            Err(_) => xml.to_string(),
-        }
-    }
-
-    /// 解析 XML 为带样式的文本，支持语法高亮
-    pub fn display_formatted_xml(xml: &str) -> Vec<(egui::Color32, String)> {
-        let formatted = Self::format_xml(xml);
-        let mut result = Vec::new();
-        let chars: Vec<char> = formatted.chars().collect();
+        // 简单的 XML 格式化实现
+        let mut result: String = String::new();
+        let mut indent_level: i32 = 0;
+        let indent = "  ";
         let mut i = 0;
+        let chars: Vec<char> = xml.chars().collect();
 
         while i < chars.len() {
+            // 跳过空白字符
+            while i < chars.len() && chars[i].is_whitespace() {
+                i += 1;
+            }
+
+            if i >= chars.len() {
+                break;
+            }
+
+            // 找到标签的开始
             if chars[i] == '<' {
-                // 收集完整标签
                 let start = i;
+                // 找到标签的结束
                 while i < chars.len() && chars[i] != '>' {
                     i += 1;
                 }
                 if i < chars.len() {
-                    i += 1;
+                    i += 1; // 包含 '>'
                 }
-                let tag: String = chars[start..i].iter().collect();
 
-                // 添加样式
-                let styled_parts = Self::style_tag(&tag);
-                for (color, text) in styled_parts {
-                    result.push((color, text));
+                let tag: String = chars[start..i].iter().collect();
+                let trimmed_tag = tag.trim();
+
+                if trimmed_tag.is_empty() {
+                    continue;
                 }
-            } else if chars[i] == '\n' {
-                result.push((egui::Color32::LIGHT_GRAY, "\n".to_string()));
-                i += 1;
-            } else if !chars[i].is_whitespace() {
-                // 标签之间的文本内容
-                let mut text = String::new();
-                while i < chars.len() && chars[i] != '<' && chars[i] != '\n' {
-                    if !chars[i].is_whitespace() {
-                        text.push(chars[i]);
-                    }
-                    i += 1;
+
+                // 处理结束标签
+                if trimmed_tag.starts_with("</") {
+                    indent_level = indent_level.saturating_sub(1);
                 }
-                if !text.is_empty() {
-                    result.push((egui::Color32::LIGHT_GRAY, text));
+
+                // 添加缩进
+                for _ in 0..indent_level {
+                    result.push_str(indent);
+                }
+                result.push_str(trimmed_tag);
+                result.push('\n');
+
+                // 处理开始标签（非自闭合）
+                if trimmed_tag.starts_with('<')
+                    && !trimmed_tag.starts_with("<?")
+                    && !trimmed_tag.starts_with("<!--")
+                    && !trimmed_tag.ends_with("/>")
+                    && !trimmed_tag.starts_with("</")
+                {
+                    indent_level += 1;
                 }
             } else {
-                i += 1;
+                // 文本内容，跳过
+                while i < chars.len() && chars[i] != '<' {
+                    i += 1;
+                }
             }
+        }
+
+        result.trim_end().to_string()
+    }
+
+    /// 解析 XML 为带样式的文本，支持语法高亮
+    /// 按行返回，每行包含颜色和内容
+    pub fn display_formatted_xml(xml: &str) -> Vec<(egui::Color32, String)> {
+        let formatted = Self::format_xml(xml);
+        let mut result = Vec::new();
+
+        // 按行处理，保持原有格式
+        for line in formatted.lines() {
+            let styled_line = Self::style_line(line);
+            result.push(styled_line);
+            result.push((egui::Color32::LIGHT_GRAY, "\n".to_string()));
         }
 
         result
     }
 
-    /// 为 XML 标签添加语法高亮
-    fn style_tag(tag: &str) -> Vec<(egui::Color32, String)> {
-        let mut parts = Vec::new();
-        let tag_trimmed = tag.trim();
+    /// 为一行 XML 添加语法高亮
+    fn style_line(line: &str) -> (egui::Color32, String) {
+        // 简单的高亮：整行使用不同颜色
+        let trimmed = line.trim();
 
-        if tag_trimmed.starts_with("<?") {
+        if trimmed.starts_with("<?") {
             // XML 声明 - 紫色
-            parts.push((egui::Color32::from_rgb(180, 100, 180), format!("{}\n", tag_trimmed)));
-        } else if tag_trimmed.starts_with("<!--") {
+            (egui::Color32::from_rgb(180, 100, 180), line.to_string())
+        } else if trimmed.starts_with("<!--") {
             // 注释 - 绿色
-            parts.push((egui::Color32::from_rgb(100, 180, 100), tag_trimmed.to_string()));
+            (egui::Color32::from_rgb(100, 180, 100), line.to_string())
+        } else if trimmed.starts_with('<') {
+            // 标签行 - 根据内容判断颜色
+            if trimmed.starts_with("</") {
+                // 结束标签 - 蓝色
+                (egui::Color32::from_rgb(65, 105, 225), line.to_string())
+            } else {
+                // 开始标签或自闭合标签 - 蓝色
+                (egui::Color32::from_rgb(65, 105, 225), line.to_string())
+            }
+        } else if !trimmed.is_empty() {
+            // 文本内容 - 浅灰色
+            (egui::Color32::LIGHT_GRAY, line.to_string())
         } else {
-            let is_closing = tag_trimmed.starts_with("</");
-            let content = if is_closing {
-                &tag_trimmed[2..tag_trimmed.len() - 1]
-            } else if tag_trimmed.ends_with("/>") {
-                &tag_trimmed[1..tag_trimmed.len() - 2]
-            } else {
-                &tag_trimmed[1..tag_trimmed.len() - 1]
-            };
-
-            // 使用空格分割，但保留属性结构
-            let mut tokens: Vec<String> = Vec::new();
-            let mut current = String::new();
-            let mut in_attr_value = false;
-
-            for ch in content.chars() {
-                if ch == '"' {
-                    current.push(ch);
-                    in_attr_value = !in_attr_value;
-                } else if ch == ' ' && !in_attr_value {
-                    if !current.is_empty() {
-                        tokens.push(current.clone());
-                        current = String::new();
-                    }
-                } else {
-                    current.push(ch);
-                }
-            }
-            if !current.is_empty() {
-                tokens.push(current);
-            }
-
-            if tokens.is_empty() {
-                parts.push((egui::Color32::LIGHT_GRAY, tag.to_string()));
-                return parts;
-            }
-
-            // 标签名 - 蓝色
-            let tag_name = if is_closing {
-                format!("</{}>", tokens[0])
-            } else if tag_trimmed.ends_with("/>") {
-                format!("<{}/>", tokens[0])
-            } else {
-                format!("<{}>", tokens[0])
-            };
-            parts.push((egui::Color32::from_rgb(65, 105, 225), tag_name));
-
-            // 属性 - 橙色名和绿色值
-            for attr_token in &tokens[1..] {
-                if let Some(eq_pos) = attr_token.find('=') {
-                    let attr_name = &attr_token[..eq_pos];
-                    let attr_value = attr_token[eq_pos + 1..].trim_matches('"');
-
-                    parts.push((egui::Color32::from_rgb(255, 140, 0), format!(" {}", attr_name)));
-                    parts.push((
-                        egui::Color32::from_rgb(100, 180, 100),
-                        format!("=\"{}\"", attr_value),
-                    ));
-                } else {
-                    parts.push((egui::Color32::LIGHT_GRAY, format!(" {}", attr_token)));
-                }
-            }
+            // 空行
+            (egui::Color32::LIGHT_GRAY, line.to_string())
         }
-
-        parts
     }
 }

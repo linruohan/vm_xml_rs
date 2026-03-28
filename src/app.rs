@@ -4,10 +4,11 @@ use crate::{
     model::vm_config::VMConfig,
     panels::{
         BlockIOTuningPanel, CPUPanel, CPUTuningPanel, DevicesPanel, DiskThrottleGroupPanel,
-        EventsPanel, FibreChannelVMIDPanel, GeneralPanel, HypervisorFeaturesPanel, IOThreadsPanel,
-        KeyWrapPanel, LaunchSecurityPanel, MemoryPanel, MemoryTuningPanel, NUMAPanel, OSPanel,
-        PerformanceMonitoringPanel, PowerManagementPanel, ResourcePartitioningPanel, SMBIOSPanel,
-        SecurityLabelPanel, TimeKeepingPanel,
+        EventsPanel, FibreChannelVMIDPanel, GeneralPanel, GraphicsPanel, HypervisorFeaturesPanel,
+        IOThreadsPanel, InputPanel, KeyWrapPanel, LaunchSecurityPanel, MemoryPanel, MemoryTuningPanel,
+        NetworkPanel, NUMAPanel, OSPanel, ParallelPanel, PCIPanel, PerformanceMonitoringPanel,
+        PowerManagementPanel, ResourcePartitioningPanel, SerialPanel, SMBIOSPanel, SecurityLabelPanel,
+        SoundPanel, TimeKeepingPanel, USBPanel,
     },
     xml_gen::XMLGenerator,
 };
@@ -37,6 +38,14 @@ enum Tab {
     AdvancedSecurity,
     AdvancedKeyWrap,
     AdvancedLaunchSecurity,
+    AdvancedNetwork,
+    AdvancedSound,
+    AdvancedGraphics,
+    AdvancedInput,
+    AdvancedSerial,
+    AdvancedParallel,
+    AdvancedUSB,
+    AdvancedPCI,
 }
 
 pub struct VMConfigApp {
@@ -134,6 +143,14 @@ impl VMConfigApp {
                 (Tab::AdvancedSecurity, "🔒 安全标签"),
                 (Tab::AdvancedKeyWrap, " 密钥封装"),
                 (Tab::AdvancedLaunchSecurity, "🚀 启动安全"),
+                (Tab::AdvancedNetwork, "🌐 网络"),
+                (Tab::AdvancedSound, "🔊 声音"),
+                (Tab::AdvancedGraphics, "🎨 图形"),
+                (Tab::AdvancedInput, "⌨ 输入设备"),
+                (Tab::AdvancedSerial, "📟 串口"),
+                (Tab::AdvancedParallel, "🖨 并口"),
+                (Tab::AdvancedUSB, "🔌 USB"),
+                (Tab::AdvancedPCI, "💻 PCI"),
             ];
 
             for (tab, label) in base_tabs {
@@ -200,6 +217,14 @@ impl VMConfigApp {
             Tab::AdvancedSecurity => SecurityLabelPanel::show(ui, &mut self.config),
             Tab::AdvancedKeyWrap => KeyWrapPanel::show(ui, &mut self.config),
             Tab::AdvancedLaunchSecurity => LaunchSecurityPanel::show(ui, &mut self.config),
+            Tab::AdvancedNetwork => NetworkPanel::show(ui, &mut self.config),
+            Tab::AdvancedSound => SoundPanel::show(ui, &mut self.config),
+            Tab::AdvancedGraphics => GraphicsPanel::show(ui, &mut self.config),
+            Tab::AdvancedInput => InputPanel::show(ui, &mut self.config),
+            Tab::AdvancedSerial => SerialPanel::show(ui, &mut self.config),
+            Tab::AdvancedParallel => ParallelPanel::show(ui, &mut self.config),
+            Tab::AdvancedUSB => USBPanel::show(ui, &mut self.config),
+            Tab::AdvancedPCI => PCIPanel::show(ui, &mut self.config),
         }
     }
 
@@ -243,74 +268,71 @@ impl VMConfigApp {
         });
     }
 
-    fn show_xml_preview(&mut self, ctx: &egui::Context) {
-        let mut close_window = false;
-        let mut copy_to_clipboard = false;
-        let mut save_xml = false;
-
-        let styled_xml = crate::xml_gen::XMLGenerator::display_formatted_xml(&self.generated_xml);
-
-        egui::Window::new("XML 预览")
-            .default_size([600.0, 500.0])
-            .open(&mut self.show_xml_preview)
-            .show(ctx, |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    egui::Frame::none()
-                        .fill(egui::Color32::from_rgb(30, 30, 30))
-                        .inner_margin(10.0)
-                        .rounding(5.0)
-                        .show(ui, |ui| {
-                            for (color, text) in &styled_xml {
-                                ui.label(
-                                    egui::RichText::new(text)
-                                        .font(egui::TextStyle::Monospace.resolve(ui.style()))
-                                        .color(*color),
-                                );
-                            }
-                        });
-                });
-
-                ui.add_space(10.0);
-                ui.horizontal(|ui| {
-                    if ui.button("📋 复制").clicked() {
-                        copy_to_clipboard = true;
-                    }
-                    if ui.button("💾 保存").clicked() {
-                        save_xml = true;
-                    }
-                    if ui.button("📄 格式化").clicked() {
-                        // 格式化 XML 并更新 generated_xml
-                        let formatted =
-                            crate::xml_gen::XMLGenerator::format_xml(&self.generated_xml);
-                        self.generated_xml = formatted;
-                        self.status_message = Some(("XML 已格式化!".to_string(), true));
-                    }
-                    if ui.button("关闭").clicked() {
-                        close_window = true;
-                    }
-                });
-            });
-
-        if copy_to_clipboard {
-            ctx.output_mut(|o| o.copied_text = self.generated_xml.clone());
-            self.status_message = Some(("XML 已复制到剪贴板!".to_string(), true));
-        }
-
-        if save_xml {
-            if let Err(e) = self.export_xml() {
-                self.status_message = Some((format!("保存失败：{}", e), false));
-            } else {
-                self.status_message = Some(("XML 已保存!".to_string(), true));
+    fn show_xml_preview(&mut self, ui: &mut egui::Ui) {
+        // 如果 generated_xml 为空，先生成 XML
+        if self.generated_xml.is_empty() {
+            match XMLGenerator::generate(&self.config) {
+                Ok(xml) => self.generated_xml = xml,
+                Err(e) => {
+                    self.status_message = Some((format!("生成失败：{}", e), false));
+                    return;
+                },
             }
         }
 
-        if close_window {
-            self.show_xml_preview = false;
-        }
+        // 使用和导出一样的格式化逻辑
+        let formatted_xml = crate::xml_gen::XMLGenerator::format_xml(&self.generated_xml);
+        self.generated_xml = formatted_xml.clone();
+
+        // XML 内容区域 - 占满整个宽度，直接显示格式化后的文本
+        egui::Frame::none()
+            .fill(egui::Color32::from_rgb(30, 30, 30))
+            .inner_margin(10.0)
+            .rounding(5.0)
+            .show(ui, |ui| {
+                // 设置占满可用宽度
+                ui.set_width(ui.available_width());
+                egui::ScrollArea::vertical().max_height(300.0).show(ui, |ui| {
+                    ui.add(
+                        egui::TextEdit::multiline(&mut formatted_xml.as_str())
+                            .font(egui::TextStyle::Monospace)
+                            .text_color(egui::Color32::LIGHT_GRAY)
+                            .desired_width(ui.available_width())
+                            .desired_rows(20)
+                            .interactive(false),
+                    );
+                });
+            });
+
+        // 按钮行 - 占满整个宽度
+        ui.add_space(5.0);
+        ui.horizontal_wrapped(|ui| {
+            if ui.button("📋 复制").clicked() {
+                ui.output_mut(|o| o.copied_text = self.generated_xml.clone());
+                self.status_message = Some(("XML 已复制到剪贴板!".to_string(), true));
+            }
+            if ui.button("💾 保存").clicked() {
+                if let Err(e) = self.export_xml() {
+                    self.status_message = Some((format!("保存失败：{}", e), false));
+                } else {
+                    self.status_message = Some(("XML 已保存!".to_string(), true));
+                }
+            }
+            if ui.button("📄 格式化").clicked() {
+                let formatted = crate::xml_gen::XMLGenerator::format_xml(&self.generated_xml);
+                self.generated_xml = formatted;
+                self.status_message = Some(("XML 已格式化!".to_string(), true));
+            }
+        });
     }
 
     fn export_xml(&mut self) -> Result<(), String> {
-        let xml = XMLGenerator::generate(&self.config)?;
+        // 如果已经有生成的 XML，直接使用；否则重新生成
+        let xml = if self.generated_xml.is_empty() {
+            XMLGenerator::generate(&self.config)?
+        } else {
+            self.generated_xml.clone()
+        };
 
         if let Some(path) = rfd::FileDialog::new()
             .add_filter("XML 文件", &["xml"])
@@ -342,10 +364,33 @@ impl eframe::App for VMConfigApp {
             });
         });
 
-        egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
-            self.show_status_bar(ui);
-        });
-
-        self.show_xml_preview(ctx);
+        // XML 预览面板（底部）
+        if self.show_xml_preview {
+            egui::TopBottomPanel::bottom("xml_preview")
+                .resizable(true)
+                .min_height(200.0)
+                .max_height(400.0)
+                .show(ctx, |ui| {
+                    ui.vertical(|ui| {
+                        ui.horizontal(|ui| {
+                            ui.strong("XML 预览");
+                            ui.with_layout(
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| {
+                                    if ui.small_button("✕ 关闭").clicked() {
+                                        self.show_xml_preview = false;
+                                    }
+                                },
+                            );
+                        });
+                        ui.separator();
+                        self.show_xml_preview(ui);
+                    });
+                });
+        } else {
+            egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
+                self.show_status_bar(ui);
+            });
+        }
     }
 }
