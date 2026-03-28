@@ -2,13 +2,15 @@ use egui::RichText;
 
 use crate::{
     model::{CPUModel, CPUTopology, VMConfig},
-    panels::utils::*,
+    panels::utils::{get_theme_colors, Theme, *},
 };
 
 pub struct CPUPanel;
 
 impl CPUPanel {
     pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
+        let colors = get_theme_colors(Theme::Light);
+
         panel_header(ui, "🖥", "CPU 配置");
 
         card_group(ui, "CPU 拓扑结构", None, |ui| {
@@ -44,7 +46,9 @@ impl CPUPanel {
             let total_vcpus =
                 topology.sockets * topology.dies.unwrap_or(1) * topology.cores * topology.threads;
             ui.label(
-                RichText::new(format!("总 vCPU 数：{}", total_vcpus)).strong().color(colors::INFO),
+                RichText::new(format!("总 vCPU 数：{}", total_vcpus))
+                    .strong()
+                    .color(colors.info),
             );
 
             config.cpu.topology = Some(topology);

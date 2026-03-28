@@ -1,8 +1,9 @@
-use egui::{Color32, RichText};
+use egui::RichText;
 
 use crate::{
     model::vm_config::VMConfig,
     panels::{
+        utils::{get_theme_colors, Theme},
         BlockIOTuningPanel, CPUPanel, CPUTuningPanel, DevicesPanel, DiskThrottleGroupPanel,
         EventsPanel, FibreChannelVMIDPanel, GeneralPanel, HypervisorFeaturesPanel, IOThreadsPanel,
         KeyWrapPanel, LaunchSecurityPanel, MemoryPanel, MemoryTuningPanel, NUMAPanel, OSPanel,
@@ -45,17 +46,44 @@ pub struct VMConfigApp {
     generated_xml: String,
     show_xml_preview: bool,
     status_message: Option<(String, bool)>,
+    current_theme: Theme,
 }
 
 impl VMConfigApp {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        let app = Self {
             config: VMConfig::new(),
             current_tab: Tab::default(),
             generated_xml: String::new(),
             show_xml_preview: false,
             status_message: None,
-        }
+            current_theme: Theme::Light,
+        };
+        // 设置初始主题
+        app.set_theme(&cc.egui_ctx);
+        app
+    }
+
+    fn set_theme(&self, ctx: &egui::Context) {
+        let colors = get_theme_colors(self.current_theme);
+        let mut style = (*ctx.style()).clone();
+
+        // 背景色
+        style.visuals.window_fill = colors.window_fill;
+        style.visuals.panel_fill = colors.panel_fill;
+        style.visuals.override_text_color = Some(colors.text_primary);
+
+        // 输入框样式（TextEdit）
+        style.visuals.widgets.inactive.bg_fill = colors.input_background;
+        style.visuals.widgets.hovered.bg_fill = colors.input_background;
+        style.visuals.widgets.active.bg_fill = colors.input_background;
+        style.visuals.selection.bg_fill = colors.info;
+
+        // 边框颜色
+        style.visuals.window_stroke = egui::Stroke::new(1.0, colors.border_color);
+        style.visuals.selection.stroke = egui::Stroke::new(1.0, colors.input_text);
+
+        ctx.set_style(style);
     }
 
     fn show_menu_bar(&mut self, ui: &mut egui::Ui) {
@@ -97,6 +125,17 @@ impl VMConfigApp {
                 }
             });
 
+            ui.menu_button("视图", |ui| {
+                ui.label("主题切换:");
+                for theme in [Theme::Light, Theme::Dark, Theme::Blue] {
+                    let is_selected = self.current_theme == theme;
+                    if ui.selectable_label(is_selected, theme.name()).clicked() {
+                        self.current_theme = theme;
+                        self.set_theme(ui.ctx());
+                    }
+                }
+            });
+
             ui.menu_button("帮助", |ui| {
                 if ui.button("关于").clicked() {
                     ui.close_menu();
@@ -107,6 +146,8 @@ impl VMConfigApp {
     }
 
     fn show_tabs(&mut self, ui: &mut egui::Ui) {
+        let colors = get_theme_colors(self.current_theme);
+
         ui.horizontal_wrapped(|ui| {
             let base_tabs = [
                 (Tab::General, "⚙ 基础配置"),
@@ -136,19 +177,13 @@ impl VMConfigApp {
                 (Tab::AdvancedLaunchSecurity, "🚀 启动安全"),
             ];
 
-            // 基础标签页（橙色主题）
+            // 基础标签页
             for (tab, label) in base_tabs {
                 let is_selected = self.current_tab == tab;
-                let bg_color = if is_selected {
-                    Color32::from_rgb(255, 140, 0)
-                } else {
-                    Color32::from_rgb(245, 245, 240)
-                };
-                let text_color = if is_selected {
-                    Color32::WHITE
-                } else {
-                    Color32::BLACK
-                };
+                let bg_color =
+                    if is_selected { colors.tab_active_bg } else { colors.tab_inactive_bg };
+                let text_color =
+                    if is_selected { colors.tab_active_text } else { colors.tab_inactive_text };
 
                 let text = if is_selected {
                     RichText::new(label).strong().color(text_color)
@@ -168,31 +203,25 @@ impl VMConfigApp {
 
             ui.separator();
 
-            // 高级标签页（蓝色主题）
+            // 高级标签页
             for (tab, label) in advanced_tabs {
                 let is_selected = self.current_tab == tab;
-                let text_color = if is_selected {
-                    Color32::from_rgb(100, 149, 237)
+                let text_color =
+                    if is_selected { colors.advanced_tab_active_text } else { colors.text_primary };
+                let bg = if is_selected {
+                    colors.advanced_tab_active_bg
                 } else {
-                    Color32::BLACK
+                    colors.tab_inactive_bg
                 };
 
                 let text = if is_selected {
                     RichText::new(label).strong().color(text_color)
                 } else {
-                    RichText::new(label)
+                    RichText::new(label).color(text_color)
                 };
 
-                let bg = if is_selected {
-                    Color32::from_rgb(230, 240, 250)
-                } else {
-                    Color32::TRANSPARENT
-                };
-
-                let button = egui::Button::new(text)
-                    .fill(bg)
-                    .rounding(6.0)
-                    .min_size(egui::vec2(90.0, 30.0));
+                let button =
+                    egui::Button::new(text).fill(bg).rounding(6.0).min_size(egui::vec2(90.0, 30.0));
 
                 if ui.add(button).clicked() {
                     self.current_tab = tab;
@@ -230,18 +259,17 @@ impl VMConfigApp {
     }
 
     fn show_status_bar(&mut self, ui: &mut egui::Ui) {
+        let colors = get_theme_colors(self.current_theme);
+
         ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
             ui.separator();
             ui.horizontal(|ui| {
                 if let Some((msg, success)) = &self.status_message {
-                    let text = if *success {
-                        RichText::new(format!("✅ {}", msg)).color(Color32::from_rgb(76, 175, 80))
-                    } else {
-                        RichText::new(format!("❌ {}", msg)).color(Color32::from_rgb(244, 67, 54))
-                    };
+                    let text_color = if *success { colors.success } else { colors.error };
+                    let text = RichText::new(format!("{} {}", if *success { "✅" } else { "❌" }, msg)).color(text_color);
                     ui.label(text);
                 } else {
-                    ui.label(RichText::new("就绪").color(Color32::GRAY));
+                    ui.label(RichText::new("就绪").color(colors.status_ready));
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -269,6 +297,8 @@ impl VMConfigApp {
     }
 
     fn show_xml_preview(&mut self, ui: &mut egui::Ui) {
+        let colors = get_theme_colors(self.current_theme);
+
         // 如果 generated_xml 为空，先生成 XML
         if self.generated_xml.is_empty() {
             match XMLGenerator::generate(&self.config) {
@@ -280,43 +310,39 @@ impl VMConfigApp {
             }
         }
 
-        // XML 内容区域 - 使用深色主题
+        // XML 内容区域
         egui::Frame::none()
-            .fill(Color32::from_rgb(28, 30, 36))
+            .fill(colors.xml_bg)
             .inner_margin(12.0)
             .rounding(8.0)
-            .stroke(egui::Stroke::new(1.0, Color32::from_rgb(60, 60, 70)))
+            .stroke(egui::Stroke::new(1.0, colors.xml_border))
             .show(ui, |ui| {
                 ui.set_width(ui.available_width());
-                egui::ScrollArea::vertical()
-                    .max_height(350.0)
-                    .stick_to_right(true)
-                    .show(ui, |ui| {
+                egui::ScrollArea::vertical().max_height(350.0).stick_to_right(true).show(
+                    ui,
+                    |ui| {
                         ui.add(
                             egui::TextEdit::multiline(&mut self.generated_xml.as_str())
                                 .font(egui::TextStyle::Monospace)
-                                .text_color(Color32::from_rgb(200, 200, 200))
+                                .text_color(colors.xml_text)
                                 .desired_width(ui.available_width())
                                 .desired_rows(15)
                                 .interactive(false),
                         );
-                    });
+                    },
+                );
             });
 
         // 按钮行
         ui.add_space(8.0);
         ui.horizontal_wrapped(|ui| {
-            let copy_btn = egui::Button::new("📋 复制")
-                .fill(Color32::from_rgb(50, 150, 200))
-                .rounding(6.0);
+            let copy_btn = egui::Button::new("📋 复制").fill(colors.btn_copy).rounding(6.0);
             if ui.add(copy_btn).clicked() {
                 ui.output_mut(|o| o.copied_text = self.generated_xml.clone());
                 self.status_message = Some(("XML 已复制到剪贴板!".to_string(), true));
             }
 
-            let save_btn = egui::Button::new("💾 保存")
-                .fill(Color32::from_rgb(76, 175, 80))
-                .rounding(6.0);
+            let save_btn = egui::Button::new("💾 保存").fill(colors.btn_save).rounding(6.0);
             if ui.add(save_btn).clicked() {
                 if let Err(e) = self.export_xml() {
                     self.status_message = Some((format!("保存失败：{}", e), false));
@@ -325,9 +351,7 @@ impl VMConfigApp {
                 }
             }
 
-            let format_btn = egui::Button::new("📄 格式化")
-                .fill(Color32::from_rgb(156, 39, 176))
-                .rounding(6.0);
+            let format_btn = egui::Button::new("📄 格式化").fill(colors.btn_format).rounding(6.0);
             if ui.add(format_btn).clicked() {
                 let formatted = XMLGenerator::format_xml(&self.generated_xml);
                 self.generated_xml = formatted;
@@ -376,6 +400,7 @@ impl eframe::App for VMConfigApp {
 
         // XML 预览面板（底部）
         if self.show_xml_preview {
+            let colors = get_theme_colors(self.current_theme);
             egui::TopBottomPanel::bottom("xml_preview")
                 .resizable(true)
                 .min_height(250.0)
@@ -387,7 +412,7 @@ impl eframe::App for VMConfigApp {
                                 RichText::new("📄 XML 预览")
                                     .strong()
                                     .size(16.0)
-                                    .color(Color32::from_rgb(100, 149, 237)),
+                                    .color(colors.info),
                             );
                             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                 if ui.small_button("✕ 关闭").clicked() {
