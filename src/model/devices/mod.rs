@@ -13,8 +13,8 @@ pub use common::*;
 pub use controller::ControllerConfig;
 #[allow(unused_imports)]
 pub use disk::{
-    DiskConfig, DiskDriver, DiskSource, DiskTarget, BlockIOConfig, GeometryConfig,
-    IOtuneConfig, ThrottleFilter, EncryptionConfig, EncryptionSecret,
+    BlockIOConfig, DiskConfig, DiskDriver, DiskSource, DiskTarget, EncryptionConfig,
+    EncryptionSecret, GeometryConfig, IOtuneConfig, ThrottleFilter,
 };
 #[allow(unused_imports)]
 pub use filesystem::FilesystemConfig;
@@ -22,8 +22,7 @@ pub use filesystem::FilesystemConfig;
 pub use graphics_video::{GraphicsConfig, VideoConfig, VideoModel};
 #[allow(unused_imports)]
 pub use input_sound_tpm::{
-    InputConfig, MemballoonConfig, RngConfig,
-    SoundConfig, TPMBackend, TPMConfig, WatchdogConfig,
+    InputConfig, MemballoonConfig, RngConfig, SoundConfig, TPMBackend, TPMConfig, WatchdogConfig,
 };
 #[allow(unused_imports)]
 pub use network::{InterfaceConfig, InterfaceModel, InterfaceSource, MacAddress};

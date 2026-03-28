@@ -15,8 +15,11 @@ cargo run
 # 发布模式构建（启用 LTO 和优化级别 2）
 cargo build --release
 
-# 运行测试
+# 运行所有测试
 cargo test
+
+# 运行单个测试
+cargo test <test_name>
 
 # Clippy 检查
 cargo clippy
@@ -26,11 +29,24 @@ cargo clippy
 
 ### 核心模块
 
-- **`src/main.rs`** - 应用入口，配置 egui 字体（文楷 GB）和窗口参数
+- **`src/main.rs`** - 应用入口，配置 egui 字体（MapleMono）和窗口参数，加载应用图标
 - **`src/app.rs`** - 主应用结构 `VMConfigApp`，管理 UI 状态、菜单栏、标签页导航
-- **`src/model/vm_config.rs`** - VM 配置数据模型，包含所有 libvirt 域配置的结构体定义
-- **`src/xml_gen/mod.rs`** - XML 生成器，使用 `quick-xml` 库手动构建 XML 事件流
+- **`src/model/vm_config.rs`** - VM 配置数据模型根结构，组合所有子配置模块
+- **`src/xml_gen/mod.rs`** - XML 生成器入口，使用 `quick-xml` 库手动构建 XML 事件流
 - **`src/panels/`** - UI 面板模块，每个面板对应一个配置类别
+
+### XML 生成器结构
+
+`src/xml_gen/` 采用模块化设计，每个子模块负责特定类别的 XML 生成：
+
+- `general.rs` - 基础配置（name, UUID, metadata）
+- `os.rs` - 引导配置（type, arch, boot, loader）
+- `cpu.rs` - CPU/vCPU 配置
+- `memory.rs` - 内存配置
+- `devices/` - 设备配置（disk, network, input, sound, graphics, serial, tpm, controller, filesystem, rng, watchdog）
+- `tuning.rs` - CPU 调优（cputune）
+- `misc.rs` - 杂项（clock, features, perf, iothreads, events, numatune）
+- `advanced/` - 高级配置（power management, sysinfo/SMBIOS 等）
 
 ### 面板结构
 

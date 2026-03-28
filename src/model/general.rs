@@ -40,7 +40,7 @@ impl Default for GeneralConfig {
     fn default() -> Self {
         Self {
             vm_type: "kvm".to_string(),
-            name: "new-vm".to_string(),
+            name: "vm0".to_string(),
             uuid: Some(Uuid::new_v4().to_string()),
             hwuuid: None,
             genid: None,

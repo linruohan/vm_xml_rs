@@ -68,7 +68,7 @@ impl VMConfigApp {
                 }
                 if ui.button("导出 XML...").clicked() {
                     if let Err(e) = self.export_xml() {
-                        self.status_message = Some((format!("导出失败: {}", e), false));
+                        self.status_message = Some((format!("导出失败：{}", e), false));
                     } else {
                         self.status_message = Some(("XML 已成功导出!".to_string(), true));
                     }
@@ -82,7 +82,7 @@ impl VMConfigApp {
                             self.status_message = Some(("XML 已复制到剪贴板!".to_string(), true));
                         },
                         Err(e) => {
-                            self.status_message = Some((format!("生成失败: {}", e), false));
+                            self.status_message = Some((format!("生成失败：{}", e), false));
                         },
                     }
                     ui.close_menu();
@@ -107,7 +107,6 @@ impl VMConfigApp {
     }
 
     fn show_tabs(&mut self, ui: &mut egui::Ui) {
-        // 使用 horizontal_wrapped 布局，根据窗口宽度自动调整显示行数
         ui.horizontal_wrapped(|ui| {
             let base_tabs = [
                 (Tab::General, "⚙ 基础配置"),
@@ -119,11 +118,11 @@ impl VMConfigApp {
 
             let advanced_tabs = [
                 (Tab::AdvancedSMBIOS, "🔬 SMBIOS"),
-                (Tab::AdvancedIOThreads, "🔄 IO线程"),
-                (Tab::AdvancedCPUTuning, "⚡ CPU调优"),
+                (Tab::AdvancedIOThreads, "🔄 IO 线程"),
+                (Tab::AdvancedCPUTuning, "⚡ CPU 调优"),
                 (Tab::AdvancedMemoryTuning, "📊 内存调优"),
                 (Tab::AdvancedNUMA, "🔢 NUMA"),
-                (Tab::AdvancedBlockIO, "💽 块IO"),
+                (Tab::AdvancedBlockIO, "💽 块 IO"),
                 (Tab::AdvancedResource, "📦 资源分区"),
                 (Tab::AdvancedFCVMID, "🔗 FC VMID"),
                 (Tab::AdvancedEvents, "📅 事件"),
@@ -133,11 +132,10 @@ impl VMConfigApp {
                 (Tab::AdvancedTime, "⏰ 时间同步"),
                 (Tab::AdvancedPerformance, "📈 性能监控"),
                 (Tab::AdvancedSecurity, "🔒 安全标签"),
-                (Tab::AdvancedKeyWrap, "� 密钥封装"),
+                (Tab::AdvancedKeyWrap, " 密钥封装"),
                 (Tab::AdvancedLaunchSecurity, "🚀 启动安全"),
             ];
 
-            // 基础配置标签
             for (tab, label) in base_tabs {
                 let is_selected = self.current_tab == tab;
                 let text = if is_selected {
@@ -146,26 +144,21 @@ impl VMConfigApp {
                     RichText::new(label).color(Color32::BLACK)
                 };
 
-                // 设置橙色背景，选中时使用更深的橙色
                 let fill_color = if is_selected {
-                    Color32::from_rgb(255, 140, 0) // 选中时更深的橙色
+                    Color32::from_rgb(255, 140, 0)
                 } else {
-                    Color32::from_rgb(255, 165, 0) // 未选中时的橙色
+                    Color32::from_rgb(255, 165, 0)
                 };
 
-                // 创建按钮并设置样式
                 let button = egui::Button::new(text).fill(fill_color);
-
                 let btn = ui.add_enabled(true, button);
                 if btn.clicked() {
                     self.current_tab = tab;
                 }
             }
 
-            // 添加分隔符
             ui.separator();
 
-            // 高级配置标签
             for (tab, label) in advanced_tabs {
                 let is_selected = self.current_tab == tab;
                 let text = if is_selected {
@@ -233,14 +226,14 @@ impl VMConfigApp {
                                 self.show_xml_preview = true;
                             },
                             Err(e) => {
-                                self.status_message = Some((format!("生成失败: {}", e), false));
+                                self.status_message = Some((format!("生成失败：{}", e), false));
                             },
                         }
                     }
 
                     if ui.button("💾 导出 XML").clicked() {
                         if let Err(e) = self.export_xml() {
-                            self.status_message = Some((format!("导出失败: {}", e), false));
+                            self.status_message = Some((format!("导出失败：{}", e), false));
                         } else {
                             self.status_message = Some(("XML 已成功导出!".to_string(), true));
                         }
@@ -255,18 +248,26 @@ impl VMConfigApp {
         let mut copy_to_clipboard = false;
         let mut save_xml = false;
 
-        // 格式化XML内容
-        let formatted_xml = match crate::xml_gen::XMLGenerator::format_xml(&self.generated_xml) {
-            Ok(formatted) => formatted,
-            Err(_) => self.generated_xml.clone(),
-        };
+        let styled_xml = crate::xml_gen::XMLGenerator::display_formatted_xml(&self.generated_xml);
 
         egui::Window::new("XML 预览")
             .default_size([600.0, 500.0])
             .open(&mut self.show_xml_preview)
             .show(ctx, |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
-                    ui.code(&formatted_xml);
+                    egui::Frame::none()
+                        .fill(egui::Color32::from_rgb(30, 30, 30))
+                        .inner_margin(10.0)
+                        .rounding(5.0)
+                        .show(ui, |ui| {
+                            for (color, text) in &styled_xml {
+                                ui.label(
+                                    egui::RichText::new(text)
+                                        .font(egui::TextStyle::Monospace.resolve(ui.style()))
+                                        .color(*color),
+                                );
+                            }
+                        });
                 });
 
                 ui.add_space(10.0);
@@ -276,6 +277,13 @@ impl VMConfigApp {
                     }
                     if ui.button("💾 保存").clicked() {
                         save_xml = true;
+                    }
+                    if ui.button("📄 格式化").clicked() {
+                        // 格式化 XML 并更新 generated_xml
+                        let formatted =
+                            crate::xml_gen::XMLGenerator::format_xml(&self.generated_xml);
+                        self.generated_xml = formatted;
+                        self.status_message = Some(("XML 已格式化!".to_string(), true));
                     }
                     if ui.button("关闭").clicked() {
                         close_window = true;
@@ -290,7 +298,7 @@ impl VMConfigApp {
 
         if save_xml {
             if let Err(e) = self.export_xml() {
-                self.status_message = Some((format!("保存失败: {}", e), false));
+                self.status_message = Some((format!("保存失败：{}", e), false));
             } else {
                 self.status_message = Some(("XML 已保存!".to_string(), true));
             }
@@ -309,7 +317,7 @@ impl VMConfigApp {
             .set_file_name(format!("{}.xml", self.config.general.name))
             .save_file()
         {
-            std::fs::write(&path, &xml).map_err(|e| format!("写入文件失败: {}", e))?;
+            std::fs::write(&path, &xml).map_err(|e| format!("写入文件失败：{}", e))?;
             self.generated_xml = xml;
             Ok(())
         } else {
