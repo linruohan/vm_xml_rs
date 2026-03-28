@@ -1,0 +1,20 @@
+[package]
+name = "vm_xml_rs"
+version = "0.1.0"
+edition = "2021"
+description = "VM XML Configuration Generator based on egui"
+authors = ["linruohan"]
+license = "MIT"
+
+[dependencies]
+eframe = "0.27"
+egui = "0.27"
+egui_extras = { version = "0.27", features = ["all_loaders"] }
+serde = { version = "1.0", features = ["derive"] }
+quick-xml = { version = "0.31", features = ["serialize"] }
+uuid = { version = "1.7", features = ["v4", "serde"] }
+rfd = "0.14"
+
+[profile.release]
+opt-level = 2
+lto = true
