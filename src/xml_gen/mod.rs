@@ -147,49 +147,4 @@ impl XMLGenerator {
 
         result.trim_end().to_string()
     }
-
-    /// 解析 XML 为带样式的文本，支持语法高亮
-    /// 按行返回，每行包含颜色和内容
-    pub fn display_formatted_xml(xml: &str) -> Vec<(egui::Color32, String)> {
-        let formatted = Self::format_xml(xml);
-        let mut result = Vec::new();
-
-        // 按行处理，保持原有格式
-        for line in formatted.lines() {
-            let styled_line = Self::style_line(line);
-            result.push(styled_line);
-            result.push((egui::Color32::LIGHT_GRAY, "\n".to_string()));
-        }
-
-        result
-    }
-
-    /// 为一行 XML 添加语法高亮
-    fn style_line(line: &str) -> (egui::Color32, String) {
-        // 简单的高亮：整行使用不同颜色
-        let trimmed = line.trim();
-
-        if trimmed.starts_with("<?") {
-            // XML 声明 - 紫色
-            (egui::Color32::from_rgb(180, 100, 180), line.to_string())
-        } else if trimmed.starts_with("<!--") {
-            // 注释 - 绿色
-            (egui::Color32::from_rgb(100, 180, 100), line.to_string())
-        } else if trimmed.starts_with('<') {
-            // 标签行 - 根据内容判断颜色
-            if trimmed.starts_with("</") {
-                // 结束标签 - 蓝色
-                (egui::Color32::from_rgb(65, 105, 225), line.to_string())
-            } else {
-                // 开始标签或自闭合标签 - 蓝色
-                (egui::Color32::from_rgb(65, 105, 225), line.to_string())
-            }
-        } else if !trimmed.is_empty() {
-            // 文本内容 - 浅灰色
-            (egui::Color32::LIGHT_GRAY, line.to_string())
-        } else {
-            // 空行
-            (egui::Color32::LIGHT_GRAY, line.to_string())
-        }
-    }
 }

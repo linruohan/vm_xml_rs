@@ -5,6 +5,7 @@ mod xml_gen;
 
 use app::VMConfigApp;
 use eframe::icon_data;
+use panels::utils::apply_global_style;
 
 /// 从 PNG 文件加载图标
 fn load_icon() -> egui::IconData {
@@ -53,6 +54,12 @@ fn main() -> eframe::Result<()> {
         Box::new(|cc| {
             // 设置字体
             cc.egui_ctx.set_fonts(fonts);
+            // 应用全局样式
+            {
+                let mut style = cc.egui_ctx.style().as_ref().clone();
+                apply_global_style(&mut style);
+                cc.egui_ctx.set_style(style);
+            }
             Box::new(VMConfigApp::new(cc))
         }),
     )

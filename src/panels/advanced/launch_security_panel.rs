@@ -1,6 +1,7 @@
-use egui::RichText;
-
-use crate::model::{LaunchSecurityConfig, SecurityLabelConfig, TPMBackend, TPMConfig, VMConfig};
+use crate::{
+    model::{LaunchSecurityConfig, SecurityLabelConfig, TPMBackend, TPMConfig, VMConfig},
+    panels::utils::*,
+};
 
 /// 启动安全配置面板
 pub struct LaunchSecurityPanel;
@@ -8,12 +9,11 @@ pub struct LaunchSecurityPanel;
 impl LaunchSecurityPanel {
     /// 显示启动安全配置面板
     pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
-        ui.group(|ui| {
-            ui.label(RichText::new("启动安全配置").strong());
-            ui.add_space(5.0);
+        panel_header(ui, "🛡️", "启动安全配置");
 
+        card_group(ui, "启动安全设置", None, |ui| {
             let mut has_launch_security = config.launch_security.is_some();
-            if ui.checkbox(&mut has_launch_security, "启用启动安全").changed() {
+            if checkbox(ui, &mut has_launch_security, "启用启动安全") {
                 if has_launch_security {
                     config.launch_security = Some(LaunchSecurityConfig::default());
                 } else {
@@ -22,6 +22,7 @@ impl LaunchSecurityPanel {
             }
 
             if let Some(ref mut launch_security) = config.launch_security {
+                ui.add_space(5.0);
                 ui.collapsing("安全标签", |ui| {
                     if launch_security.seclabel.is_none() {
                         launch_security.seclabel = Some(SecurityLabelConfig {
@@ -32,21 +33,19 @@ impl LaunchSecurityPanel {
                         });
                     }
                     if let Some(ref mut seclabel) = launch_security.seclabel {
-                        egui::Grid::new("seclabel_grid").num_columns(2).spacing([10.0, 8.0]).show(
-                            ui,
-                            |ui| {
-                                ui.label("类型:");
-                                ui.text_edit_singleline(&mut seclabel.label_type);
-                                ui.end_row();
+                        grid(ui, "seclabel_grid", 2, |ui| {
+                            ui.label("类型:");
+                            ui.text_edit_singleline(&mut seclabel.label_type);
+                            ui.end_row();
 
-                                ui.label("模型:");
-                                ui.text_edit_singleline(&mut seclabel.model);
-                                ui.end_row();
-                            },
-                        );
+                            ui.label("模型:");
+                            ui.text_edit_singleline(&mut seclabel.model);
+                            ui.end_row();
+                        });
                     }
                 });
 
+                ui.add_space(5.0);
                 ui.collapsing("TPM 配置", |ui| {
                     if launch_security.tpm.is_none() {
                         launch_security.tpm = Some(TPMConfig {
@@ -58,26 +57,24 @@ impl LaunchSecurityPanel {
                         });
                     }
                     if let Some(ref mut tpm) = launch_security.tpm {
-                        egui::Grid::new("tpm_grid").num_columns(2).spacing([10.0, 8.0]).show(
-                            ui,
-                            |ui| {
-                                ui.label("模型:");
-                                ui.text_edit_singleline(&mut tpm.model);
-                                ui.end_row();
+                        grid(ui, "tpm_grid", 2, |ui| {
+                            ui.label("模型:");
+                            ui.text_edit_singleline(&mut tpm.model);
+                            ui.end_row();
 
-                                ui.label("后端类型:");
-                                ui.text_edit_singleline(&mut tpm.backend.backend_type);
-                                ui.end_row();
+                            ui.label("后端类型:");
+                            ui.text_edit_singleline(&mut tpm.backend.backend_type);
+                            ui.end_row();
 
-                                ui.label("版本:");
-                                if let Some(ref mut version) = &mut tpm.backend.version {
-                                    ui.text_edit_singleline(version);
-                                } else {
-                                    ui.text_edit_singleline(&mut String::new());
-                                }
-                                ui.end_row();
-                            },
-                        );
+                            ui.label("版本:");
+                            if let Some(ref mut version) = &mut tpm.backend.version {
+                                ui.text_edit_singleline(version);
+                            } else {
+                                let mut empty = String::new();
+                                ui.text_edit_singleline(&mut empty);
+                            }
+                            ui.end_row();
+                        });
                     }
                 });
             }

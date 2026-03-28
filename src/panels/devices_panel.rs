@@ -1,39 +1,35 @@
-use egui::RichText;
-
-use crate::model::{
-    DiskConfig, DiskDriver, DiskSource, DiskTarget, GraphicsConfig, InputConfig, InterfaceConfig,
-    InterfaceModel, InterfaceSource, MacAddress, TPMBackend, TPMConfig, VMConfig, VideoConfig,
-    VideoModel,
+use crate::{
+    model::{
+        DiskConfig, DiskDriver, DiskSource, DiskTarget, GraphicsConfig, InputConfig,
+        InterfaceConfig, InterfaceModel, InterfaceSource, MacAddress, TPMBackend, TPMConfig,
+        VMConfig, VideoConfig, VideoModel,
+    },
+    panels::utils::*,
 };
 
 pub struct DevicesPanel;
 
 impl DevicesPanel {
     pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
-        ui.heading(RichText::new("🔌 设备配置").size(18.0));
-        ui.separator();
-        ui.add_space(10.0);
+        panel_header(ui, "🔌", "设备配置");
 
-        DevicesPanel::show_graphics(ui, config);
-        ui.add_space(10.0);
-        DevicesPanel::show_video(ui, config);
-        ui.add_space(10.0);
-        DevicesPanel::show_disks(ui, config);
-        ui.add_space(10.0);
-        DevicesPanel::show_network(ui, config);
-        ui.add_space(10.0);
-        DevicesPanel::show_input(ui, config);
-        ui.add_space(10.0);
-        DevicesPanel::show_tpm(ui, config);
+        Self::show_graphics(ui, config);
+        ui.add_space(8.0);
+        Self::show_video(ui, config);
+        ui.add_space(8.0);
+        Self::show_disks(ui, config);
+        ui.add_space(8.0);
+        Self::show_network(ui, config);
+        ui.add_space(8.0);
+        Self::show_input(ui, config);
+        ui.add_space(8.0);
+        Self::show_tpm(ui, config);
     }
 
     fn show_graphics(ui: &mut egui::Ui, config: &mut VMConfig) {
-        ui.group(|ui| {
-            ui.label(RichText::new("图形显示").strong());
-            ui.add_space(5.0);
-
+        card_group(ui, "图形显示", Some("🖥"), |ui| {
             let mut has_graphics = config.devices.graphics.is_some();
-            if ui.checkbox(&mut has_graphics, "启用图形显示").changed() {
+            if checkbox(ui, &mut has_graphics, "启用图形显示") {
                 if has_graphics {
                     config.devices.graphics = Some(vec![GraphicsConfig {
                         graphics_type: "vnc".to_string(),
@@ -50,10 +46,9 @@ impl DevicesPanel {
             if let Some(ref mut graphics_list) = config.devices.graphics {
                 for (i, g) in graphics_list.iter_mut().enumerate() {
                     ui.push_id(i, |ui| {
-                        egui::Grid::new(format!("graphics_grid_{}", i))
-                            .num_columns(2)
-                            .spacing([10.0, 8.0])
-                            .show(ui, |ui| {
+                        ui.group(|ui| {
+                            ui.label(format!("图形设备 {}", i + 1));
+                            grid(ui, format!("graphics_grid_{}", i), 2, |ui| {
                                 ui.label("类型:");
                                 egui::ComboBox::from_id_source(format!("graphics_type_{}", i))
                                     .selected_text(&g.graphics_type)
@@ -93,11 +88,13 @@ impl DevicesPanel {
                                 ui.end_row();
 
                                 ui.label("监听地址:");
-                                let mut listen = g.listen.clone().unwrap_or_default();
-                                ui.text_edit_singleline(&mut listen);
-                                g.listen = Some(listen);
+                                let listen =
+                                    g.listen.get_or_insert_with(|| "127.0.0.1".to_string());
+                                ui.text_edit_singleline(listen);
                                 ui.end_row();
                             });
+                        });
+                        ui.add_space(5.0);
                     });
                 }
             }
@@ -105,12 +102,9 @@ impl DevicesPanel {
     }
 
     fn show_video(ui: &mut egui::Ui, config: &mut VMConfig) {
-        ui.group(|ui| {
-            ui.label(RichText::new("视频设备").strong());
-            ui.add_space(5.0);
-
+        card_group(ui, "视频设备", Some("📺"), |ui| {
             let mut has_video = config.devices.video.is_some();
-            if ui.checkbox(&mut has_video, "启用视频设备").changed() {
+            if checkbox(ui, &mut has_video, "启用视频设备") {
                 if has_video {
                     config.devices.video = Some(vec![VideoConfig {
                         video_type: None,
@@ -129,10 +123,9 @@ impl DevicesPanel {
             if let Some(ref mut video_list) = config.devices.video {
                 for (i, v) in video_list.iter_mut().enumerate() {
                     ui.push_id(i, |ui| {
-                        egui::Grid::new(format!("video_grid_{}", i))
-                            .num_columns(2)
-                            .spacing([10.0, 8.0])
-                            .show(ui, |ui| {
+                        ui.group(|ui| {
+                            ui.label(format!("视频设备 {}", i + 1));
+                            grid(ui, format!("video_grid_{}", i), 2, |ui| {
                                 ui.label("视频模型:");
                                 egui::ComboBox::from_id_source(format!("video_model_{}", i))
                                     .selected_text(&v.model.model_type)
@@ -167,7 +160,7 @@ impl DevicesPanel {
 
                                 ui.label("VRAM (KB):");
                                 let mut vram = v.model.vram.unwrap_or(65536);
-                                ui.add(egui::Slider::new(&mut vram, 4096..=262144));
+                                ui.add(egui::Slider::new(&mut vram, 4096..=262144).text("KB"));
                                 v.model.vram = Some(vram);
                                 ui.end_row();
 
@@ -177,6 +170,8 @@ impl DevicesPanel {
                                 v.model.heads = Some(heads);
                                 ui.end_row();
                             });
+                        });
+                        ui.add_space(5.0);
                     });
                 }
             }
@@ -184,248 +179,203 @@ impl DevicesPanel {
     }
 
     fn show_disks(ui: &mut egui::Ui, config: &mut VMConfig) {
-        ui.group(|ui| {
-            ui.label(RichText::new("磁盘设备").strong());
-            ui.add_space(5.0);
-
+        card_group(ui, "磁盘设备", Some("💽"), |ui| {
             if config.devices.disk.is_none() {
                 config.devices.disk = Some(Vec::new());
             }
 
             if let Some(ref mut disk_list) = config.devices.disk {
-                if ui.button("➕ 添加磁盘").clicked() {
-                    disk_list.push(DiskConfig {
-                        disk_type: "file".to_string(),
-                        device: "disk".to_string(),
-                        driver: Some(DiskDriver {
-                            name: "qemu".to_string(),
-                            driver_type: "qcow2".to_string(),
-                            cache: Some("none".to_string()),
-                            io: None,
-                            ioeventfd: None,
-                            event_idx: None,
-                            queues: None,
-                            queue_size: None,
-                        }),
-                        source: Some(DiskSource {
-                            file: Some("/var/lib/libvirt/images/disk.qcow2".to_string()),
-                            dev: None,
-                            protocol: None,
-                            name: None,
-                            startup_policy: None,
-                            host: None,
-                            auth: None,
-                            seclabel: None,
-                        }),
-                        target: Some(DiskTarget {
-                            dev: format!("vd{}", (b'a' + disk_list.len() as u8) as char),
-                            bus: Some("virtio".to_string()),
-                            tray: None,
-                            rotation_rate: None,
-                        }),
-                        readonly: None,
-                        geometry: None,
-                        blockio: None,
-                        iotune: None,
-                        backenddomain: None,
-                        throttlefilters: None,
-                        address: None,
-                        snapshot: None,
-                        alias: None,
-                        boot: None,
-                        shareable: None,
-                        transient: None,
-                        encryption: None,
-                        serial: None,
-                        wwn: None,
-                        vendor: None,
-                    });
-                }
+                ui.horizontal(|ui| {
+                    if add_button(ui, "➕ 添加磁盘") {
+                        disk_list.push(Self::create_default_disk(disk_list.len()));
+                    }
+                });
 
                 let mut to_remove = None;
                 for (i, disk) in disk_list.iter_mut().enumerate() {
                     ui.push_id(i, |ui| {
-                        ui.horizontal(|ui| {
-                            ui.label(format!("磁盘 {}:", i + 1));
-                            if ui.button("🗑️ 删除").clicked() {
-                                to_remove = Some(i);
-                            }
-                        });
+                        egui::Frame::group(ui.style()).inner_margin(egui::Margin::same(8.0)).show(
+                            ui,
+                            |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("**磁盘 {}**", i + 1));
+                                    if delete_button(ui, None) {
+                                        to_remove = Some(i);
+                                    }
+                                });
 
-                        egui::Grid::new(format!("disk_grid_{}", i))
-                            .num_columns(2)
-                            .spacing([10.0, 8.0])
-                            .show(ui, |ui| {
-                                ui.label("磁盘类型:");
-                                egui::ComboBox::from_id_source(format!("disk_type_{}", i))
-                                    .selected_text(&disk.disk_type)
-                                    .show_ui(ui, |ui| {
-                                        ui.selectable_value(
-                                            &mut disk.disk_type,
-                                            "file".to_string(),
-                                            "file",
-                                        );
-                                        ui.selectable_value(
-                                            &mut disk.disk_type,
-                                            "block".to_string(),
-                                            "block",
-                                        );
-                                        ui.selectable_value(
-                                            &mut disk.disk_type,
-                                            "dir".to_string(),
-                                            "dir",
-                                        );
-                                        ui.selectable_value(
-                                            &mut disk.disk_type,
-                                            "network".to_string(),
-                                            "network",
-                                        );
-                                    });
-                                ui.end_row();
+                                grid(ui, format!("disk_grid_{}", i), 2, |ui| {
+                                    ui.label("磁盘类型:");
+                                    egui::ComboBox::from_id_source(format!("disk_type_{}", i))
+                                        .selected_text(&disk.disk_type)
+                                        .show_ui(ui, |ui| {
+                                            ui.selectable_value(
+                                                &mut disk.disk_type,
+                                                "file".to_string(),
+                                                "file",
+                                            );
+                                            ui.selectable_value(
+                                                &mut disk.disk_type,
+                                                "block".to_string(),
+                                                "block",
+                                            );
+                                            ui.selectable_value(
+                                                &mut disk.disk_type,
+                                                "dir".to_string(),
+                                                "dir",
+                                            );
+                                            ui.selectable_value(
+                                                &mut disk.disk_type,
+                                                "network".to_string(),
+                                                "network",
+                                            );
+                                        });
+                                    ui.end_row();
 
-                                ui.label("设备类型:");
-                                egui::ComboBox::from_id_source(format!("device_type_{}", i))
-                                    .selected_text(&disk.device)
-                                    .show_ui(ui, |ui| {
-                                        ui.selectable_value(
-                                            &mut disk.device,
-                                            "disk".to_string(),
-                                            "disk",
-                                        );
-                                        ui.selectable_value(
-                                            &mut disk.device,
-                                            "cdrom".to_string(),
-                                            "cdrom",
-                                        );
-                                        ui.selectable_value(
-                                            &mut disk.device,
-                                            "floppy".to_string(),
-                                            "floppy",
-                                        );
-                                        ui.selectable_value(
-                                            &mut disk.device,
-                                            "lun".to_string(),
-                                            "lun",
-                                        );
-                                    });
-                                ui.end_row();
+                                    ui.label("设备类型:");
+                                    egui::ComboBox::from_id_source(format!("device_type_{}", i))
+                                        .selected_text(&disk.device)
+                                        .show_ui(ui, |ui| {
+                                            ui.selectable_value(
+                                                &mut disk.device,
+                                                "disk".to_string(),
+                                                "disk",
+                                            );
+                                            ui.selectable_value(
+                                                &mut disk.device,
+                                                "cdrom".to_string(),
+                                                "cdrom",
+                                            );
+                                            ui.selectable_value(
+                                                &mut disk.device,
+                                                "floppy".to_string(),
+                                                "floppy",
+                                            );
+                                            ui.selectable_value(
+                                                &mut disk.device,
+                                                "lun".to_string(),
+                                                "lun",
+                                            );
+                                        });
+                                    ui.end_row();
 
-                                if let Some(ref mut driver) = disk.driver {
-                                    ui.label("驱动格式:");
-                                    egui::ComboBox::from_id_source(format!("driver_type_{}", i))
+                                    if let Some(ref mut driver) = disk.driver {
+                                        ui.label("驱动格式:");
+                                        egui::ComboBox::from_id_source(format!(
+                                            "driver_type_{}",
+                                            i
+                                        ))
                                         .selected_text(&driver.driver_type)
-                                        .show_ui(ui, |ui| {
-                                            ui.selectable_value(
-                                                &mut driver.driver_type,
-                                                "qcow2".to_string(),
-                                                "qcow2",
-                                            );
-                                            ui.selectable_value(
-                                                &mut driver.driver_type,
-                                                "raw".to_string(),
-                                                "raw",
-                                            );
-                                            ui.selectable_value(
-                                                &mut driver.driver_type,
-                                                "vmdk".to_string(),
-                                                "vmdk",
-                                            );
-                                            ui.selectable_value(
-                                                &mut driver.driver_type,
-                                                "vdi".to_string(),
-                                                "vdi",
-                                            );
+                                        .show_ui(
+                                            ui,
+                                            |ui| {
+                                                ui.selectable_value(
+                                                    &mut driver.driver_type,
+                                                    "qcow2".to_string(),
+                                                    "qcow2",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut driver.driver_type,
+                                                    "raw".to_string(),
+                                                    "raw",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut driver.driver_type,
+                                                    "vmdk".to_string(),
+                                                    "vmdk",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut driver.driver_type,
+                                                    "vdi".to_string(),
+                                                    "vdi",
+                                                );
+                                            },
+                                        );
+                                        ui.end_row();
+
+                                        ui.label("缓存模式:");
+                                        let cache =
+                                            driver.cache.get_or_insert_with(|| "none".to_string());
+                                        egui::ComboBox::from_id_source(format!("cache_{}", i))
+                                            .selected_text(cache.as_str())
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(
+                                                    cache,
+                                                    "none".to_string(),
+                                                    "none",
+                                                );
+                                                ui.selectable_value(
+                                                    cache,
+                                                    "writethrough".to_string(),
+                                                    "writethrough",
+                                                );
+                                                ui.selectable_value(
+                                                    cache,
+                                                    "writeback".to_string(),
+                                                    "writeback",
+                                                );
+                                                ui.selectable_value(
+                                                    cache,
+                                                    "directsync".to_string(),
+                                                    "directsync",
+                                                );
+                                                ui.selectable_value(
+                                                    cache,
+                                                    "unsafe".to_string(),
+                                                    "unsafe",
+                                                );
+                                            });
+                                        ui.end_row();
+                                    }
+
+                                    if let Some(ref mut source) = disk.source {
+                                        ui.label("文件路径:");
+                                        let file = source.file.get_or_insert_with(|| {
+                                            "/var/lib/libvirt/images/disk.qcow2".to_string()
                                         });
-                                    ui.end_row();
+                                        ui.text_edit_singleline(file);
+                                        ui.end_row();
+                                    }
 
-                                    ui.label("缓存模式:");
-                                    let mut cache = driver.cache.clone().unwrap_or_default();
-                                    egui::ComboBox::from_id_source(format!("cache_{}", i))
-                                        .selected_text(&cache)
-                                        .show_ui(ui, |ui| {
-                                            ui.selectable_value(
-                                                &mut cache,
-                                                "none".to_string(),
-                                                "none",
-                                            );
-                                            ui.selectable_value(
-                                                &mut cache,
-                                                "writethrough".to_string(),
-                                                "writethrough",
-                                            );
-                                            ui.selectable_value(
-                                                &mut cache,
-                                                "writeback".to_string(),
-                                                "writeback",
-                                            );
-                                            ui.selectable_value(
-                                                &mut cache,
-                                                "directsync".to_string(),
-                                                "directsync",
-                                            );
-                                            ui.selectable_value(
-                                                &mut cache,
-                                                "unsafe".to_string(),
-                                                "unsafe",
-                                            );
-                                        });
-                                    driver.cache = Some(cache);
-                                    ui.end_row();
-                                }
+                                    if let Some(ref mut target) = disk.target {
+                                        ui.label("目标设备:");
+                                        ui.text_edit_singleline(&mut target.dev);
+                                        ui.end_row();
 
-                                if let Some(ref mut source) = disk.source {
-                                    ui.label("文件路径:");
-                                    let mut file = source.file.clone().unwrap_or_default();
-                                    ui.text_edit_singleline(&mut file);
-                                    source.file = Some(file);
-                                    ui.end_row();
-                                }
+                                        ui.label("总线类型:");
+                                        let bus =
+                                            target.bus.get_or_insert_with(|| "virtio".to_string());
+                                        egui::ComboBox::from_id_source(format!("bus_{}", i))
+                                            .selected_text(bus.as_str())
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(
+                                                    bus,
+                                                    "virtio".to_string(),
+                                                    "virtio",
+                                                );
+                                                ui.selectable_value(
+                                                    bus,
+                                                    "sata".to_string(),
+                                                    "sata",
+                                                );
+                                                ui.selectable_value(
+                                                    bus,
+                                                    "scsi".to_string(),
+                                                    "scsi",
+                                                );
+                                                ui.selectable_value(bus, "ide".to_string(), "ide");
+                                                ui.selectable_value(bus, "usb".to_string(), "usb");
+                                            });
+                                        ui.end_row();
+                                    }
 
-                                if let Some(ref mut target) = disk.target {
-                                    ui.label("目标设备:");
-                                    ui.text_edit_singleline(&mut target.dev);
-                                    ui.end_row();
-
-                                    ui.label("总线类型:");
-                                    egui::ComboBox::from_id_source(format!("bus_{}", i))
-                                        .selected_text(target.bus.clone().unwrap_or_default())
-                                        .show_ui(ui, |ui| {
-                                            ui.selectable_value(
-                                                &mut target.bus,
-                                                Some("virtio".to_string()),
-                                                "virtio",
-                                            );
-                                            ui.selectable_value(
-                                                &mut target.bus,
-                                                Some("sata".to_string()),
-                                                "sata",
-                                            );
-                                            ui.selectable_value(
-                                                &mut target.bus,
-                                                Some("scsi".to_string()),
-                                                "scsi",
-                                            );
-                                            ui.selectable_value(
-                                                &mut target.bus,
-                                                Some("ide".to_string()),
-                                                "ide",
-                                            );
-                                            ui.selectable_value(
-                                                &mut target.bus,
-                                                Some("usb".to_string()),
-                                                "usb",
-                                            );
-                                        });
-                                    ui.end_row();
-                                }
-
-                                let mut readonly = disk.readonly.is_some();
-                                if ui.checkbox(&mut readonly, "只读").changed() {
-                                    disk.readonly = if readonly { Some(()) } else { None };
-                                }
-                                ui.end_row();
-                            });
-
+                                    let mut readonly = disk.readonly.is_some();
+                                    if checkbox(ui, &mut readonly, "只读") {
+                                        disk.readonly = if readonly { Some(()) } else { None };
+                                    }
+                                });
+                            },
+                        );
                         ui.add_space(5.0);
                     });
                 }
@@ -438,133 +388,116 @@ impl DevicesPanel {
     }
 
     fn show_network(ui: &mut egui::Ui, config: &mut VMConfig) {
-        ui.group(|ui| {
-            ui.label(RichText::new("网络接口").strong());
-            ui.add_space(5.0);
-
+        card_group(ui, "网络接口", Some("🌐"), |ui| {
             if config.devices.interface.is_none() {
                 config.devices.interface = Some(Vec::new());
             }
 
             if let Some(ref mut iface_list) = config.devices.interface {
-                if ui.button("➕ 添加网络接口").clicked() {
-                    iface_list.push(InterfaceConfig {
-                        interface_type: "bridge".to_string(),
-                        trust_guest_rx_filters: None,
-                        mac: Some(MacAddress { address: DevicesPanel::generate_mac() }),
-                        source: Some(InterfaceSource {
-                            bridge: Some("virbr0".to_string()),
-                            network: None,
-                            dev: None,
-                            mode: None,
-                        }),
-                        model: Some(InterfaceModel { model_type: "virtio".to_string() }),
-                        alias: None,
-                        boot: None,
-                        address: None,
-                    });
-                }
+                ui.horizontal(|ui| {
+                    if add_button(ui, "➕ 添加网络接口") {
+                        iface_list.push(Self::create_default_interface());
+                    }
+                });
 
                 let mut to_remove = None;
                 for (i, iface) in iface_list.iter_mut().enumerate() {
                     ui.push_id(i, |ui| {
-                        ui.horizontal(|ui| {
-                            ui.label(format!("接口 {}:", i + 1));
-                            if ui.button("🗑️ 删除").clicked() {
-                                to_remove = Some(i);
-                            }
-                        });
-
-                        egui::Grid::new(format!("iface_grid_{}", i))
-                            .num_columns(2)
-                            .spacing([10.0, 8.0])
-                            .show(ui, |ui| {
-                                ui.label("接口类型:");
-                                egui::ComboBox::from_id_source(format!("iface_type_{}", i))
-                                    .selected_text(&iface.interface_type)
-                                    .show_ui(ui, |ui| {
-                                        ui.selectable_value(
-                                            &mut iface.interface_type,
-                                            "bridge".to_string(),
-                                            "bridge",
-                                        );
-                                        ui.selectable_value(
-                                            &mut iface.interface_type,
-                                            "network".to_string(),
-                                            "network",
-                                        );
-                                        ui.selectable_value(
-                                            &mut iface.interface_type,
-                                            "ethernet".to_string(),
-                                            "ethernet",
-                                        );
-                                        ui.selectable_value(
-                                            &mut iface.interface_type,
-                                            "direct".to_string(),
-                                            "direct",
-                                        );
-                                    });
-                                ui.end_row();
-
-                                if let Some(ref mut mac) = iface.mac {
-                                    ui.label("MAC 地址:");
-                                    ui.text_edit_singleline(&mut mac.address);
-                                    ui.end_row();
-                                }
-
-                                if let Some(ref mut source) = iface.source {
-                                    match iface.interface_type.as_str() {
-                                        "bridge" => {
-                                            if let Some(ref mut bridge) = source.bridge {
-                                                ui.label("网桥:");
-                                                ui.text_edit_singleline(bridge);
-                                                ui.end_row();
-                                            }
-                                        },
-                                        "network" => {
-                                            if source.network.is_none() {
-                                                source.network = Some("default".to_string());
-                                            }
-                                            if let Some(ref mut network) = source.network {
-                                                ui.label("网络:");
-                                                ui.text_edit_singleline(network);
-                                                ui.end_row();
-                                            }
-                                        },
-                                        _ => {},
+                        egui::Frame::group(ui.style()).inner_margin(egui::Margin::same(8.0)).show(
+                            ui,
+                            |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("**接口 {}**", i + 1));
+                                    if delete_button(ui, None) {
+                                        to_remove = Some(i);
                                     }
-                                }
+                                });
 
-                                if let Some(ref mut model) = iface.model {
-                                    ui.label("网卡模型:");
-                                    egui::ComboBox::from_id_source(format!("nic_model_{}", i))
-                                        .selected_text(&model.model_type)
+                                grid(ui, format!("iface_grid_{}", i), 2, |ui| {
+                                    ui.label("接口类型:");
+                                    egui::ComboBox::from_id_source(format!("iface_type_{}", i))
+                                        .selected_text(&iface.interface_type)
                                         .show_ui(ui, |ui| {
                                             ui.selectable_value(
-                                                &mut model.model_type,
-                                                "virtio".to_string(),
-                                                "virtio",
+                                                &mut iface.interface_type,
+                                                "bridge".to_string(),
+                                                "bridge",
                                             );
                                             ui.selectable_value(
-                                                &mut model.model_type,
-                                                "e1000".to_string(),
-                                                "e1000",
+                                                &mut iface.interface_type,
+                                                "network".to_string(),
+                                                "network",
                                             );
                                             ui.selectable_value(
-                                                &mut model.model_type,
-                                                "rtl8139".to_string(),
-                                                "rtl8139",
+                                                &mut iface.interface_type,
+                                                "ethernet".to_string(),
+                                                "ethernet",
                                             );
                                             ui.selectable_value(
-                                                &mut model.model_type,
-                                                "ne2k_pci".to_string(),
-                                                "ne2k_pci",
+                                                &mut iface.interface_type,
+                                                "direct".to_string(),
+                                                "direct",
                                             );
                                         });
                                     ui.end_row();
-                                }
-                            });
 
+                                    if let Some(ref mut mac) = iface.mac {
+                                        ui.label("MAC 地址:");
+                                        ui.text_edit_singleline(&mut mac.address);
+                                        ui.end_row();
+                                    }
+
+                                    if let Some(ref mut source) = iface.source {
+                                        match iface.interface_type.as_str() {
+                                            "bridge" => {
+                                                if let Some(ref mut bridge) = source.bridge {
+                                                    ui.label("网桥:");
+                                                    ui.text_edit_singleline(bridge);
+                                                    ui.end_row();
+                                                }
+                                            },
+                                            "network" => {
+                                                if let Some(ref mut network) = source.network {
+                                                    ui.label("网络:");
+                                                    ui.text_edit_singleline(network);
+                                                    ui.end_row();
+                                                }
+                                            },
+                                            _ => {},
+                                        }
+                                    }
+
+                                    if let Some(ref mut model) = iface.model {
+                                        ui.label("网卡模型:");
+                                        egui::ComboBox::from_id_source(format!("nic_model_{}", i))
+                                            .selected_text(&model.model_type)
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(
+                                                    &mut model.model_type,
+                                                    "virtio".to_string(),
+                                                    "virtio",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut model.model_type,
+                                                    "e1000".to_string(),
+                                                    "e1000",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut model.model_type,
+                                                    "rtl8139".to_string(),
+                                                    "rtl8139",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut model.model_type,
+                                                    "ne2k_pci".to_string(),
+                                                    "ne2k_pci",
+                                                );
+                                            });
+                                        ui.end_row();
+                                    }
+                                });
+                            },
+                        );
                         ui.add_space(5.0);
                     });
                 }
@@ -577,79 +510,70 @@ impl DevicesPanel {
     }
 
     fn show_input(ui: &mut egui::Ui, config: &mut VMConfig) {
-        ui.group(|ui| {
-            ui.label(RichText::new("输入设备").strong());
-            ui.add_space(5.0);
-
+        card_group(ui, "输入设备", Some("⌨"), |ui| {
             if config.devices.input.is_none() {
                 config.devices.input = Some(Vec::new());
             }
 
             if let Some(ref mut input_list) = config.devices.input {
-                if ui.button("➕ 添加输入设备").clicked() {
-                    input_list.push(InputConfig {
-                        input_type: "tablet".to_string(),
-                        bus: Some("usb".to_string()),
-                    });
-                }
+                ui.horizontal(|ui| {
+                    if add_button(ui, "➕ 添加输入设备") {
+                        input_list.push(InputConfig {
+                            input_type: "tablet".to_string(),
+                            bus: Some("usb".to_string()),
+                        });
+                    }
+                });
 
                 let mut to_remove = None;
                 for (i, input) in input_list.iter_mut().enumerate() {
                     ui.push_id(i, |ui| {
                         ui.horizontal(|ui| {
-                            ui.label(format!("输入设备 {}:", i + 1));
-                            if ui.button("🗑️ 删除").clicked() {
+                            ui.label(format!("输入设备 {}", i + 1));
+                            if delete_button(ui, None) {
                                 to_remove = Some(i);
                             }
                         });
 
-                        egui::Grid::new(format!("input_grid_{}", i))
-                            .num_columns(2)
-                            .spacing([10.0, 8.0])
-                            .show(ui, |ui| {
-                                ui.label("设备类型:");
-                                egui::ComboBox::from_id_source(format!("input_type_{}", i))
-                                    .selected_text(&input.input_type)
-                                    .show_ui(ui, |ui| {
-                                        ui.selectable_value(
-                                            &mut input.input_type,
-                                            "tablet".to_string(),
-                                            "tablet",
-                                        );
-                                        ui.selectable_value(
-                                            &mut input.input_type,
-                                            "mouse".to_string(),
-                                            "mouse",
-                                        );
-                                        ui.selectable_value(
-                                            &mut input.input_type,
-                                            "keyboard".to_string(),
-                                            "keyboard",
-                                        );
-                                        ui.selectable_value(
-                                            &mut input.input_type,
-                                            "passthrough".to_string(),
-                                            "passthrough",
-                                        );
-                                    });
-                                ui.end_row();
+                        grid(ui, format!("input_grid_{}", i), 2, |ui| {
+                            ui.label("设备类型:");
+                            egui::ComboBox::from_id_source(format!("input_type_{}", i))
+                                .selected_text(&input.input_type)
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(
+                                        &mut input.input_type,
+                                        "tablet".to_string(),
+                                        "tablet",
+                                    );
+                                    ui.selectable_value(
+                                        &mut input.input_type,
+                                        "mouse".to_string(),
+                                        "mouse",
+                                    );
+                                    ui.selectable_value(
+                                        &mut input.input_type,
+                                        "keyboard".to_string(),
+                                        "keyboard",
+                                    );
+                                    ui.selectable_value(
+                                        &mut input.input_type,
+                                        "passthrough".to_string(),
+                                        "passthrough",
+                                    );
+                                });
+                            ui.end_row();
 
-                                ui.label("总线:");
-                                let mut bus = input.bus.clone().unwrap_or_default();
-                                egui::ComboBox::from_id_source(format!("input_bus_{}", i))
-                                    .selected_text(&bus)
-                                    .show_ui(ui, |ui| {
-                                        ui.selectable_value(&mut bus, "usb".to_string(), "USB");
-                                        ui.selectable_value(&mut bus, "ps2".to_string(), "PS/2");
-                                        ui.selectable_value(
-                                            &mut bus,
-                                            "virtio".to_string(),
-                                            "Virtio",
-                                        );
-                                    });
-                                input.bus = Some(bus);
-                                ui.end_row();
-                            });
+                            ui.label("总线:");
+                            let bus = input.bus.get_or_insert_with(|| "usb".to_string());
+                            egui::ComboBox::from_id_source(format!("input_bus_{}", i))
+                                .selected_text(bus.as_str())
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(bus, "usb".to_string(), "USB");
+                                    ui.selectable_value(bus, "ps2".to_string(), "PS/2");
+                                    ui.selectable_value(bus, "virtio".to_string(), "Virtio");
+                                });
+                            ui.end_row();
+                        });
                     });
                 }
 
@@ -661,12 +585,9 @@ impl DevicesPanel {
     }
 
     fn show_tpm(ui: &mut egui::Ui, config: &mut VMConfig) {
-        ui.group(|ui| {
-            ui.label(RichText::new("TPM 设备").strong());
-            ui.add_space(5.0);
-
+        card_group(ui, "TPM 设备", Some("🔒"), |ui| {
             let mut has_tpm = config.devices.tpm.is_some();
-            if ui.checkbox(&mut has_tpm, "启用 TPM").changed() {
+            if checkbox(ui, &mut has_tpm, "启用 TPM") {
                 if has_tpm {
                     config.devices.tpm = Some(TPMConfig {
                         model: "tpm-tis".to_string(),
@@ -681,7 +602,7 @@ impl DevicesPanel {
             }
 
             if let Some(ref mut tpm) = config.devices.tpm {
-                egui::Grid::new("tpm_grid").num_columns(2).spacing([10.0, 8.0]).show(ui, |ui| {
+                grid(ui, "tpm_grid", 2, |ui| {
                     ui.label("TPM 模型:");
                     egui::ComboBox::from_id_source("tpm_model").selected_text(&tpm.model).show_ui(
                         ui,
@@ -710,19 +631,84 @@ impl DevicesPanel {
                     ui.end_row();
 
                     ui.label("TPM 版本:");
-                    let mut version = tpm.backend.version.clone().unwrap_or_default();
-                    egui::ComboBox::from_id_source("tpm_version").selected_text(&version).show_ui(
-                        ui,
-                        |ui| {
-                            ui.selectable_value(&mut version, "1.2".to_string(), "1.2");
-                            ui.selectable_value(&mut version, "2.0".to_string(), "2.0");
-                        },
-                    );
-                    tpm.backend.version = Some(version);
+                    let version = tpm.backend.version.get_or_insert_with(|| "2.0".to_string());
+                    egui::ComboBox::from_id_source("tpm_version")
+                        .selected_text(version.as_str())
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(version, "1.2".to_string(), "1.2");
+                            ui.selectable_value(version, "2.0".to_string(), "2.0");
+                        });
                     ui.end_row();
                 });
             }
         });
+    }
+
+    fn create_default_disk(index: usize) -> DiskConfig {
+        DiskConfig {
+            disk_type: "file".to_string(),
+            device: "disk".to_string(),
+            driver: Some(DiskDriver {
+                name: "qemu".to_string(),
+                driver_type: "qcow2".to_string(),
+                cache: Some("none".to_string()),
+                io: None,
+                ioeventfd: None,
+                event_idx: None,
+                queues: None,
+                queue_size: None,
+            }),
+            source: Some(DiskSource {
+                file: Some("/var/lib/libvirt/images/disk.qcow2".to_string()),
+                dev: None,
+                protocol: None,
+                name: None,
+                startup_policy: None,
+                host: None,
+                auth: None,
+                seclabel: None,
+            }),
+            target: Some(DiskTarget {
+                dev: format!("vd{}", (b'a' + index as u8) as char),
+                bus: Some("virtio".to_string()),
+                tray: None,
+                rotation_rate: None,
+            }),
+            readonly: None,
+            geometry: None,
+            blockio: None,
+            iotune: None,
+            backenddomain: None,
+            throttlefilters: None,
+            address: None,
+            snapshot: None,
+            alias: None,
+            boot: None,
+            shareable: None,
+            transient: None,
+            encryption: None,
+            serial: None,
+            wwn: None,
+            vendor: None,
+        }
+    }
+
+    fn create_default_interface() -> InterfaceConfig {
+        InterfaceConfig {
+            interface_type: "bridge".to_string(),
+            trust_guest_rx_filters: None,
+            mac: Some(MacAddress { address: Self::generate_mac() }),
+            source: Some(InterfaceSource {
+                bridge: Some("virbr0".to_string()),
+                network: None,
+                dev: None,
+                mode: None,
+            }),
+            model: Some(InterfaceModel { model_type: "virtio".to_string() }),
+            alias: None,
+            boot: None,
+            address: None,
+        }
     }
 
     fn generate_mac() -> String {

@@ -4,11 +4,10 @@ use crate::{
     model::vm_config::VMConfig,
     panels::{
         BlockIOTuningPanel, CPUPanel, CPUTuningPanel, DevicesPanel, DiskThrottleGroupPanel,
-        EventsPanel, FibreChannelVMIDPanel, GeneralPanel, GraphicsPanel, HypervisorFeaturesPanel,
-        IOThreadsPanel, InputPanel, KeyWrapPanel, LaunchSecurityPanel, MemoryPanel, MemoryTuningPanel,
-        NetworkPanel, NUMAPanel, OSPanel, ParallelPanel, PCIPanel, PerformanceMonitoringPanel,
-        PowerManagementPanel, ResourcePartitioningPanel, SerialPanel, SMBIOSPanel, SecurityLabelPanel,
-        SoundPanel, TimeKeepingPanel, USBPanel,
+        EventsPanel, FibreChannelVMIDPanel, GeneralPanel, HypervisorFeaturesPanel, IOThreadsPanel,
+        KeyWrapPanel, LaunchSecurityPanel, MemoryPanel, MemoryTuningPanel, NUMAPanel, OSPanel,
+        PerformanceMonitoringPanel, PowerManagementPanel, ResourcePartitioningPanel, SMBIOSPanel,
+        SecurityLabelPanel, TimeKeepingPanel,
     },
     xml_gen::XMLGenerator,
 };
@@ -38,14 +37,6 @@ enum Tab {
     AdvancedSecurity,
     AdvancedKeyWrap,
     AdvancedLaunchSecurity,
-    AdvancedNetwork,
-    AdvancedSound,
-    AdvancedGraphics,
-    AdvancedInput,
-    AdvancedSerial,
-    AdvancedParallel,
-    AdvancedUSB,
-    AdvancedPCI,
 }
 
 pub struct VMConfigApp {
@@ -141,51 +132,69 @@ impl VMConfigApp {
                 (Tab::AdvancedTime, "⏰ 时间同步"),
                 (Tab::AdvancedPerformance, "📈 性能监控"),
                 (Tab::AdvancedSecurity, "🔒 安全标签"),
-                (Tab::AdvancedKeyWrap, " 密钥封装"),
+                (Tab::AdvancedKeyWrap, "🔐 密钥封装"),
                 (Tab::AdvancedLaunchSecurity, "🚀 启动安全"),
-                (Tab::AdvancedNetwork, "🌐 网络"),
-                (Tab::AdvancedSound, "🔊 声音"),
-                (Tab::AdvancedGraphics, "🎨 图形"),
-                (Tab::AdvancedInput, "⌨ 输入设备"),
-                (Tab::AdvancedSerial, "📟 串口"),
-                (Tab::AdvancedParallel, "🖨 并口"),
-                (Tab::AdvancedUSB, "🔌 USB"),
-                (Tab::AdvancedPCI, "💻 PCI"),
             ];
 
+            // 基础标签页（橙色主题）
             for (tab, label) in base_tabs {
                 let is_selected = self.current_tab == tab;
-                let text = if is_selected {
-                    RichText::new(label).strong().color(Color32::WHITE)
-                } else {
-                    RichText::new(label).color(Color32::BLACK)
-                };
-
-                let fill_color = if is_selected {
+                let bg_color = if is_selected {
                     Color32::from_rgb(255, 140, 0)
                 } else {
-                    Color32::from_rgb(255, 165, 0)
+                    Color32::from_rgb(245, 245, 240)
+                };
+                let text_color = if is_selected {
+                    Color32::WHITE
+                } else {
+                    Color32::BLACK
                 };
 
-                let button = egui::Button::new(text).fill(fill_color);
-                let btn = ui.add_enabled(true, button);
-                if btn.clicked() {
+                let text = if is_selected {
+                    RichText::new(label).strong().color(text_color)
+                } else {
+                    RichText::new(label).color(text_color)
+                };
+
+                let button = egui::Button::new(text)
+                    .fill(bg_color)
+                    .rounding(8.0)
+                    .min_size(egui::vec2(100.0, 32.0));
+
+                if ui.add(button).clicked() {
                     self.current_tab = tab;
                 }
             }
 
             ui.separator();
 
+            // 高级标签页（蓝色主题）
             for (tab, label) in advanced_tabs {
                 let is_selected = self.current_tab == tab;
+                let text_color = if is_selected {
+                    Color32::from_rgb(100, 149, 237)
+                } else {
+                    Color32::BLACK
+                };
+
                 let text = if is_selected {
-                    RichText::new(label).strong().color(Color32::from_rgb(100, 149, 237))
+                    RichText::new(label).strong().color(text_color)
                 } else {
                     RichText::new(label)
                 };
 
-                let btn = ui.selectable_label(is_selected, text);
-                if btn.clicked() {
+                let bg = if is_selected {
+                    Color32::from_rgb(230, 240, 250)
+                } else {
+                    Color32::TRANSPARENT
+                };
+
+                let button = egui::Button::new(text)
+                    .fill(bg)
+                    .rounding(6.0)
+                    .min_size(egui::vec2(90.0, 30.0));
+
+                if ui.add(button).clicked() {
                     self.current_tab = tab;
                 }
             }
@@ -217,14 +226,6 @@ impl VMConfigApp {
             Tab::AdvancedSecurity => SecurityLabelPanel::show(ui, &mut self.config),
             Tab::AdvancedKeyWrap => KeyWrapPanel::show(ui, &mut self.config),
             Tab::AdvancedLaunchSecurity => LaunchSecurityPanel::show(ui, &mut self.config),
-            Tab::AdvancedNetwork => NetworkPanel::show(ui, &mut self.config),
-            Tab::AdvancedSound => SoundPanel::show(ui, &mut self.config),
-            Tab::AdvancedGraphics => GraphicsPanel::show(ui, &mut self.config),
-            Tab::AdvancedInput => InputPanel::show(ui, &mut self.config),
-            Tab::AdvancedSerial => SerialPanel::show(ui, &mut self.config),
-            Tab::AdvancedParallel => ParallelPanel::show(ui, &mut self.config),
-            Tab::AdvancedUSB => USBPanel::show(ui, &mut self.config),
-            Tab::AdvancedPCI => PCIPanel::show(ui, &mut self.config),
         }
     }
 
@@ -234,9 +235,9 @@ impl VMConfigApp {
             ui.horizontal(|ui| {
                 if let Some((msg, success)) = &self.status_message {
                     let text = if *success {
-                        RichText::new(format!("✅ {}", msg)).color(Color32::GREEN)
+                        RichText::new(format!("✅ {}", msg)).color(Color32::from_rgb(76, 175, 80))
                     } else {
-                        RichText::new(format!("❌ {}", msg)).color(Color32::RED)
+                        RichText::new(format!("❌ {}", msg)).color(Color32::from_rgb(244, 67, 54))
                     };
                     ui.label(text);
                 } else {
@@ -244,7 +245,7 @@ impl VMConfigApp {
                 }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button("📋 预览 XML").clicked() {
+                    if ui.button(RichText::new("📋 预览 XML").strong()).clicked() {
                         match XMLGenerator::generate(&self.config) {
                             Ok(xml) => {
                                 self.generated_xml = xml;
@@ -255,8 +256,7 @@ impl VMConfigApp {
                             },
                         }
                     }
-
-                    if ui.button("💾 导出 XML").clicked() {
+                    if ui.button(RichText::new("💾 导出 XML").strong()).clicked() {
                         if let Err(e) = self.export_xml() {
                             self.status_message = Some((format!("导出失败：{}", e), false));
                         } else {
@@ -280,46 +280,56 @@ impl VMConfigApp {
             }
         }
 
-        // 使用和导出一样的格式化逻辑
-        let formatted_xml = crate::xml_gen::XMLGenerator::format_xml(&self.generated_xml);
-        self.generated_xml = formatted_xml.clone();
-
-        // XML 内容区域 - 占满整个宽度，直接显示格式化后的文本
+        // XML 内容区域 - 使用深色主题
         egui::Frame::none()
-            .fill(egui::Color32::from_rgb(30, 30, 30))
-            .inner_margin(10.0)
-            .rounding(5.0)
+            .fill(Color32::from_rgb(28, 30, 36))
+            .inner_margin(12.0)
+            .rounding(8.0)
+            .stroke(egui::Stroke::new(1.0, Color32::from_rgb(60, 60, 70)))
             .show(ui, |ui| {
-                // 设置占满可用宽度
                 ui.set_width(ui.available_width());
-                egui::ScrollArea::vertical().max_height(300.0).show(ui, |ui| {
-                    ui.add(
-                        egui::TextEdit::multiline(&mut formatted_xml.as_str())
-                            .font(egui::TextStyle::Monospace)
-                            .text_color(egui::Color32::LIGHT_GRAY)
-                            .desired_width(ui.available_width())
-                            .desired_rows(20)
-                            .interactive(false),
-                    );
-                });
+                egui::ScrollArea::vertical()
+                    .max_height(350.0)
+                    .stick_to_right(true)
+                    .show(ui, |ui| {
+                        ui.add(
+                            egui::TextEdit::multiline(&mut self.generated_xml.as_str())
+                                .font(egui::TextStyle::Monospace)
+                                .text_color(Color32::from_rgb(200, 200, 200))
+                                .desired_width(ui.available_width())
+                                .desired_rows(15)
+                                .interactive(false),
+                        );
+                    });
             });
 
-        // 按钮行 - 占满整个宽度
-        ui.add_space(5.0);
+        // 按钮行
+        ui.add_space(8.0);
         ui.horizontal_wrapped(|ui| {
-            if ui.button("📋 复制").clicked() {
+            let copy_btn = egui::Button::new("📋 复制")
+                .fill(Color32::from_rgb(50, 150, 200))
+                .rounding(6.0);
+            if ui.add(copy_btn).clicked() {
                 ui.output_mut(|o| o.copied_text = self.generated_xml.clone());
                 self.status_message = Some(("XML 已复制到剪贴板!".to_string(), true));
             }
-            if ui.button("💾 保存").clicked() {
+
+            let save_btn = egui::Button::new("💾 保存")
+                .fill(Color32::from_rgb(76, 175, 80))
+                .rounding(6.0);
+            if ui.add(save_btn).clicked() {
                 if let Err(e) = self.export_xml() {
                     self.status_message = Some((format!("保存失败：{}", e), false));
                 } else {
                     self.status_message = Some(("XML 已保存!".to_string(), true));
                 }
             }
-            if ui.button("📄 格式化").clicked() {
-                let formatted = crate::xml_gen::XMLGenerator::format_xml(&self.generated_xml);
+
+            let format_btn = egui::Button::new("📄 格式化")
+                .fill(Color32::from_rgb(156, 39, 176))
+                .rounding(6.0);
+            if ui.add(format_btn).clicked() {
+                let formatted = XMLGenerator::format_xml(&self.generated_xml);
                 self.generated_xml = formatted;
                 self.status_message = Some(("XML 已格式化!".to_string(), true));
             }
@@ -368,21 +378,24 @@ impl eframe::App for VMConfigApp {
         if self.show_xml_preview {
             egui::TopBottomPanel::bottom("xml_preview")
                 .resizable(true)
-                .min_height(200.0)
-                .max_height(400.0)
+                .min_height(250.0)
+                .max_height(450.0)
                 .show(ctx, |ui| {
                     ui.vertical(|ui| {
                         ui.horizontal(|ui| {
-                            ui.strong("XML 预览");
-                            ui.with_layout(
-                                egui::Layout::right_to_left(egui::Align::Center),
-                                |ui| {
-                                    if ui.small_button("✕ 关闭").clicked() {
-                                        self.show_xml_preview = false;
-                                    }
-                                },
+                            ui.label(
+                                RichText::new("📄 XML 预览")
+                                    .strong()
+                                    .size(16.0)
+                                    .color(Color32::from_rgb(100, 149, 237)),
                             );
+                            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                if ui.small_button("✕ 关闭").clicked() {
+                                    self.show_xml_preview = false;
+                                }
+                            });
                         });
+                        ui.add_space(5.0);
                         ui.separator();
                         self.show_xml_preview(ui);
                     });

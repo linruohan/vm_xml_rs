@@ -4,6 +4,7 @@ mod devices_panel;
 mod general_panel;
 mod memory_panel;
 mod os_panel;
+pub(crate) mod utils;
 
 pub use advanced::*;
 pub use cpu_panel::CPUPanel;

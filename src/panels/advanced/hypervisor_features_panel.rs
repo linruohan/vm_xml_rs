@@ -1,6 +1,7 @@
-use egui::RichText;
-
-use crate::model::{FeatureConfig, HypervisorFeaturesConfig, VMConfig};
+use crate::{
+    model::{FeatureConfig, HypervisorFeaturesConfig, VMConfig},
+    panels::utils::*,
+};
 
 /// Hypervisor 特性配置面板
 pub struct HypervisorFeaturesPanel;
@@ -8,12 +9,11 @@ pub struct HypervisorFeaturesPanel;
 impl HypervisorFeaturesPanel {
     /// 显示 Hypervisor 特性配置面板
     pub fn show(ui: &mut egui::Ui, config: &mut VMConfig) {
-        ui.group(|ui| {
-            ui.label(RichText::new("Hypervisor 特性配置").strong());
-            ui.add_space(5.0);
+        panel_header(ui, "🛡", "Hypervisor 特性配置");
 
+        card_group(ui, "特性设置", None, |ui| {
             let mut has_features = config.hypervisor_features.is_some();
-            if ui.checkbox(&mut has_features, "启用 Hypervisor 特性").changed() {
+            if checkbox(ui, &mut has_features, "启用 Hypervisor 特性") {
                 if has_features {
                     config.hypervisor_features = Some(HypervisorFeaturesConfig::default());
                 } else {
@@ -26,12 +26,14 @@ impl HypervisorFeaturesPanel {
                     features.feature = Some(Vec::new());
                 }
                 if let Some(ref mut feature_list) = features.feature {
-                    if ui.button("➕ 添加特性").clicked() {
-                        feature_list.push(FeatureConfig {
-                            enabled: "yes".to_string(),
-                            name: "acpi".to_string(),
-                        });
-                    }
+                    ui.horizontal(|ui| {
+                        if add_button(ui, "➕ 添加特性") {
+                            feature_list.push(FeatureConfig {
+                                enabled: "yes".to_string(),
+                                name: "acpi".to_string(),
+                            });
+                        }
+                    });
 
                     let mut to_remove = None;
                     for (i, feature) in feature_list.iter_mut().enumerate() {
@@ -54,7 +56,7 @@ impl HypervisorFeaturesPanel {
                                             "no",
                                         );
                                     });
-                                if ui.button("🗑️").clicked() {
+                                if delete_button(ui, None) {
                                     to_remove = Some(i);
                                 }
                             });
