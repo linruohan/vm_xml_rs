@@ -47,7 +47,7 @@ impl NUMAPanel {
                     let mut to_remove = None;
                     for (i, cell) in cell_list.iter_mut().enumerate() {
                         ui.push_id(i, |ui| {
-                            ui.group(|ui| {
+                            inner_group(ui, colors, |ui| {
                                 ui.horizontal(|ui| {
                                     ui.label(format!("NUMA 节点 {}", cell.id));
                                     if delete_button(ui, None) {

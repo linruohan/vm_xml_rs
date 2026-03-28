@@ -55,7 +55,7 @@ impl IOThreadsPanel {
                     let mut to_remove = None;
                     for (i, iothread) in iothread_list.iter_mut().enumerate() {
                         ui.push_id(i, |ui| {
-                            ui.group(|ui| {
+                            inner_group(ui, colors, |ui| {
                                 ui.horizontal(|ui| {
                                     ui.label(format!("IOThread {}", iothread.id));
                                     if delete_button(ui, None) {

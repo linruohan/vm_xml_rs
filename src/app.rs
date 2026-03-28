@@ -57,7 +57,7 @@ impl VMConfigApp {
             generated_xml: String::new(),
             show_xml_preview: false,
             status_message: None,
-            current_theme: Theme::Light,
+            current_theme: Theme::Dark,
         };
         // 设置初始主题
         app.set_theme(&cc.egui_ctx);
@@ -68,12 +68,15 @@ impl VMConfigApp {
         let colors = get_theme_colors(self.current_theme);
         let mut style = (*ctx.style()).clone();
 
+        // 根据主题设置深色/浅色模式
+        style.visuals.dark_mode = matches!(self.current_theme, Theme::Dark);
+
         // 背景色
         style.visuals.window_fill = colors.window_fill;
         style.visuals.panel_fill = colors.panel_fill;
         style.visuals.override_text_color = Some(colors.text_primary);
 
-        // 输入框样式（TextEdit）
+        // 输入框样式（TextEdit/ComboBox）
         style.visuals.widgets.inactive.bg_fill = colors.input_background;
         style.visuals.widgets.hovered.bg_fill = colors.input_background;
         style.visuals.widgets.active.bg_fill = colors.input_background;
@@ -88,12 +91,26 @@ impl VMConfigApp {
         style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, colors.input_border);
         style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0, colors.input_border);
 
-        // 下拉菜单样式
+        // 下拉菜单样式（ComboBox 按钮部分）
         style.visuals.widgets.noninteractive.bg_fill = colors.input_background;
         style.visuals.widgets.noninteractive.bg_stroke =
             egui::Stroke::new(1.0, colors.input_border);
         style.visuals.widgets.noninteractive.fg_stroke =
             egui::Stroke::new(1.0, colors.text_primary);
+
+        // TextEdit 专用样式
+        style.visuals.extreme_bg_color = colors.input_background;
+
+        // 按钮样式
+        style.visuals.widgets.inactive.fg_stroke = egui::Stroke::new(1.0, colors.text_primary);
+        style.visuals.widgets.hovered.fg_stroke = egui::Stroke::new(1.0, colors.text_primary);
+        style.visuals.widgets.active.fg_stroke = egui::Stroke::new(1.0, colors.text_primary);
+
+        // 文本光标颜色
+        style.visuals.text_cursor = egui::Stroke::new(2.0, colors.text_primary);
+
+        // 滚动条样式
+        style.visuals.widgets.noninteractive.bg_fill = colors.card_background;
 
         ctx.set_style(style);
     }

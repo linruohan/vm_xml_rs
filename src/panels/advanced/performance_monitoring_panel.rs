@@ -56,7 +56,7 @@ impl PerformanceMonitoringPanel {
                         let mut to_remove = None;
                         for (i, event) in event_list.iter_mut().enumerate() {
                             ui.push_id(i, |ui| {
-                                ui.group(|ui| {
+                                inner_group(ui, colors, |ui| {
                                     ui.horizontal(|ui| {
                                         ui.label("事件名称:");
                                         ui.text_edit_singleline(&mut event.name);

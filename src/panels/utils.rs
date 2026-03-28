@@ -249,13 +249,27 @@ pub fn card_group_with_theme<R>(
             offset: egui::vec2(0.0, 2.0),
             blur: 4.0,
             spread: 0.0,
-            color: Color32::from_black_alpha(20),
+            color: Color32::from_black_alpha(10),
         })
         .show(ui, |ui| {
             ui.label(RichText::new(full_title).strong().size(15.0).color(colors.header_color));
             ui.add_space(8.0);
             add_contents(ui)
         })
+}
+
+/// 标准内部组（用于子项分组）
+pub fn inner_group<R>(
+    ui: &mut Ui,
+    colors: &ThemeColors,
+    add_contents: impl FnOnce(&mut Ui) -> R,
+) -> egui::InnerResponse<R> {
+    egui::Frame::group(ui.style())
+        .fill(colors.card_background)
+        .stroke(egui::Stroke::new(1.0, colors.border_color))
+        .rounding(egui::Rounding::same(6.0))
+        .inner_margin(egui::Margin::same(8.0))
+        .show(ui, add_contents)
 }
 
 /// 标准卡片组（带标题）- 支持主题

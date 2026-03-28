@@ -41,7 +41,7 @@ impl CPUTuningPanel {
                         let mut to_remove = None;
                         for (i, pin) in pin_list.iter_mut().enumerate() {
                             ui.push_id(i, |ui| {
-                                ui.group(|ui| {
+                                inner_group(ui, colors, |ui| {
                                     ui.horizontal(|ui| {
                                         ui.label(format!("vCPU {}", pin.vcpu));
                                         ui.label("绑定到 CPU:");

@@ -46,7 +46,7 @@ impl DevicesPanel {
             if let Some(ref mut graphics_list) = config.devices.graphics {
                 for (i, g) in graphics_list.iter_mut().enumerate() {
                     ui.push_id(i, |ui| {
-                        ui.group(|ui| {
+                        inner_group(ui, colors, |ui| {
                             ui.label(format!("图形设备 {}", i + 1));
                             grid(ui, format!("graphics_grid_{}", i), 2, |ui| {
                                 ui.label("类型:");
@@ -123,7 +123,7 @@ impl DevicesPanel {
             if let Some(ref mut video_list) = config.devices.video {
                 for (i, v) in video_list.iter_mut().enumerate() {
                     ui.push_id(i, |ui| {
-                        ui.group(|ui| {
+                        inner_group(ui, colors, |ui| {
                             ui.label(format!("视频设备 {}", i + 1));
                             grid(ui, format!("video_grid_{}", i), 2, |ui| {
                                 ui.label("视频模型:");
@@ -194,9 +194,10 @@ impl DevicesPanel {
                 let mut to_remove = None;
                 for (i, disk) in disk_list.iter_mut().enumerate() {
                     ui.push_id(i, |ui| {
-                        egui::Frame::group(ui.style()).inner_margin(egui::Margin::same(8.0)).show(
-                            ui,
-                            |ui| {
+                        egui::Frame::group(ui.style())
+                            .fill(colors.card_background)
+                            .inner_margin(egui::Margin::same(8.0))
+                            .show(ui, |ui| {
                                 ui.horizontal(|ui| {
                                     ui.label(format!("**磁盘 {}**", i + 1));
                                     if delete_button(ui, None) {
@@ -374,8 +375,7 @@ impl DevicesPanel {
                                         disk.readonly = if readonly { Some(()) } else { None };
                                     }
                                 });
-                            },
-                        );
+                            });
                         ui.add_space(5.0);
                     });
                 }
@@ -403,9 +403,10 @@ impl DevicesPanel {
                 let mut to_remove = None;
                 for (i, iface) in iface_list.iter_mut().enumerate() {
                     ui.push_id(i, |ui| {
-                        egui::Frame::group(ui.style()).inner_margin(egui::Margin::same(8.0)).show(
-                            ui,
-                            |ui| {
+                        egui::Frame::group(ui.style())
+                            .fill(colors.card_background)
+                            .inner_margin(egui::Margin::same(8.0))
+                            .show(ui, |ui| {
                                 ui.horizontal(|ui| {
                                     ui.label(format!("**接口 {}**", i + 1));
                                     if delete_button(ui, None) {
@@ -496,8 +497,7 @@ impl DevicesPanel {
                                         ui.end_row();
                                     }
                                 });
-                            },
-                        );
+                            });
                         ui.add_space(5.0);
                     });
                 }
