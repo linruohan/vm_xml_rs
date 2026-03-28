@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{FibreChannelVMIDConfig, VMConfig};
+use crate::model::{FibreChannelVMIDConfig, VMConfig};
 
 /// 光纤通道虚拟机标识配置面板
 pub struct FibreChannelVMIDPanel;

@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{PowerManagementConfig, VMConfig};
+use crate::model::{PowerManagementConfig, VMConfig};
 
 /// 电源管理策略配置面板
 pub struct PowerManagementPanel;

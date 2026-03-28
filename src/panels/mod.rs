@@ -6,7 +6,6 @@ mod memory_panel;
 mod os_panel;
 
 pub use advanced::*;
-
 pub use cpu_panel::CPUPanel;
 pub use devices_panel::DevicesPanel;
 pub use general_panel::GeneralPanel;

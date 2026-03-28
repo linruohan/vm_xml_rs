@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{HypervisorFeaturesConfig, VMConfig};
+use crate::model::{FeatureConfig, HypervisorFeaturesConfig, VMConfig};
 
 /// Hypervisor 特性配置面板
 pub struct HypervisorFeaturesPanel;
@@ -27,7 +27,7 @@ impl HypervisorFeaturesPanel {
                 }
                 if let Some(ref mut feature_list) = features.feature {
                     if ui.button("➕ 添加特性").clicked() {
-                        feature_list.push(crate::model::vm_config::FeatureConfig {
+                        feature_list.push(FeatureConfig {
                             enabled: "yes".to_string(),
                             name: "acpi".to_string(),
                         });

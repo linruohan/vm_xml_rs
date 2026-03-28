@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{NUMACell, NUMAConfig, VMConfig};
+use crate::model::{NUMACell, NUMAConfig, VMConfig};
 
 /// NUMA 配置面板
 pub struct NUMAPanel;

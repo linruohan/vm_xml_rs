@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{SMBIOSBaseBoard, SMBIOSBios, SMBIOSConfig, SMBIOSSystem, VMConfig};
+use crate::model::{SMBIOSBaseBoard, SMBIOSBios, SMBIOSConfig, SMBIOSSystem, VMConfig};
 
 /// SMBIOS 配置面板
 pub struct SMBIOSPanel;

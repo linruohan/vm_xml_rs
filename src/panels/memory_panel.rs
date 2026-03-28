@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{HugepagesConfig, MemoryBackingConfig, VMConfig};
+use crate::model::{HugepagesConfig, MemoryBackingConfig, VMConfig};
 
 pub struct MemoryPanel;
 

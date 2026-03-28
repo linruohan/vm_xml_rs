@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{SecurityLabelConfig, VMConfig};
+use crate::model::{SecurityLabelConfig, VMConfig};
 
 /// 安全标签配置面板
 pub struct SecurityLabelPanel;

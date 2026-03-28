@@ -1,9 +1,9 @@
 use egui::RichText;
 
-use crate::model::vm_config::{
-    DiskConfig, DiskDriver, DiskSource, DiskTarget, GraphicsConfig, InputConfig,
-    InterfaceConfig, InterfaceModel, InterfaceSource, MacAddress,
-    TPMBackend, TPMConfig, VMConfig, VideoConfig, VideoModel,
+use crate::model::{
+    DiskConfig, DiskDriver, DiskSource, DiskTarget, GraphicsConfig, InputConfig, InterfaceConfig,
+    InterfaceModel, InterfaceSource, MacAddress, TPMBackend, TPMConfig, VMConfig, VideoConfig,
+    VideoModel,
 };
 
 pub struct DevicesPanel;
@@ -202,17 +202,43 @@ impl DevicesPanel {
                             driver_type: "qcow2".to_string(),
                             cache: Some("none".to_string()),
                             io: None,
+                            ioeventfd: None,
+                            event_idx: None,
+                            queues: None,
+                            queue_size: None,
                         }),
                         source: Some(DiskSource {
                             file: Some("/var/lib/libvirt/images/disk.qcow2".to_string()),
                             dev: None,
                             protocol: None,
+                            name: None,
+                            startup_policy: None,
+                            host: None,
+                            auth: None,
+                            seclabel: None,
                         }),
                         target: Some(DiskTarget {
                             dev: format!("vd{}", (b'a' + disk_list.len() as u8) as char),
                             bus: Some("virtio".to_string()),
+                            tray: None,
+                            rotation_rate: None,
                         }),
                         readonly: None,
+                        geometry: None,
+                        blockio: None,
+                        iotune: None,
+                        backenddomain: None,
+                        throttlefilters: None,
+                        address: None,
+                        snapshot: None,
+                        alias: None,
+                        boot: None,
+                        shareable: None,
+                        transient: None,
+                        encryption: None,
+                        serial: None,
+                        wwn: None,
+                        vendor: None,
                     });
                 }
 
@@ -424,6 +450,7 @@ impl DevicesPanel {
                 if ui.button("➕ 添加网络接口").clicked() {
                     iface_list.push(InterfaceConfig {
                         interface_type: "bridge".to_string(),
+                        trust_guest_rx_filters: None,
                         mac: Some(MacAddress { address: DevicesPanel::generate_mac() }),
                         source: Some(InterfaceSource {
                             bridge: Some("virbr0".to_string()),
@@ -432,6 +459,9 @@ impl DevicesPanel {
                             mode: None,
                         }),
                         model: Some(InterfaceModel { model_type: "virtio".to_string() }),
+                        alias: None,
+                        boot: None,
+                        address: None,
                     });
                 }
 

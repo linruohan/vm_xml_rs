@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{ClockConfig, RTCConfig, TimeKeepingConfig, TimerConfig, VMConfig};
+use crate::model::{ClockConfig, RTCConfig, TimeKeepingConfig, TimerConfig, VMConfig};
 
 /// 时间同步机制配置面板
 pub struct TimeKeepingPanel;

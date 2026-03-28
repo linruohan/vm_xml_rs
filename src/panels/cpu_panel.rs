@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{CPUModel, CPUTopology, VMConfig};
+use crate::model::{CPUModel, CPUTopology, VMConfig};
 
 pub struct CPUPanel;
 
@@ -16,7 +16,8 @@ impl CPUPanel {
 
             let mut topology = config.cpu.topology.take().unwrap_or(CPUTopology {
                 sockets: 1,
-                dies: 1,
+                dies: Some(1),
+                clusters: None,
                 cores: 2,
                 threads: 1,
             });
@@ -29,7 +30,10 @@ impl CPUPanel {
                     ui.end_row();
 
                     ui.label("Dies:");
-                    ui.add(egui::Slider::new(&mut topology.dies, 1..=4));
+                    let mut dies_val = topology.dies.unwrap_or(1);
+                    if ui.add(egui::Slider::new(&mut dies_val, 1..=4)).changed() {
+                        topology.dies = Some(dies_val);
+                    }
                     ui.end_row();
 
                     ui.label("Cores:");
@@ -42,7 +46,8 @@ impl CPUPanel {
                 },
             );
 
-            let total_vcpus = topology.sockets * topology.dies * topology.cores * topology.threads;
+            let total_vcpus =
+                topology.sockets * topology.dies.unwrap_or(1) * topology.cores * topology.threads;
             ui.label(format!("总 vCPU 数: {}", total_vcpus));
 
             config.cpu.topology = Some(topology);
@@ -76,6 +81,7 @@ impl CPUPanel {
                 if has_model {
                     config.cpu.model = Some(CPUModel {
                         fallback: Some("allow".to_string()),
+                        vendor_id: None,
                         name: "qemu64".to_string(),
                     });
                 } else {

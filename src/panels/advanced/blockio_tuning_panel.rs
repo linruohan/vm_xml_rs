@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{BlockIOTuningConfig, DeviceWeight, ThrottleConfig, VMConfig};
+use crate::model::{BlockIOTuningConfig, DeviceWeight, ThrottleConfig, VMConfig};
 
 /// 块设备 I/O 调优配置面板
 pub struct BlockIOTuningPanel;

@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{EventConfig, PMUConfig, PerformanceMonitoringConfig, VMConfig};
+use crate::model::{EventConfig, PMUConfig, PerformanceMonitoringConfig, VMConfig};
 
 /// 性能监控相关事件配置面板
 pub struct PerformanceMonitoringPanel;

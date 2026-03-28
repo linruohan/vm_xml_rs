@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{KeyWrapConfig, MasterKeyConfig, VMConfig};
+use crate::model::{KeyWrapConfig, MasterKeyConfig, VMConfig};
 
 /// 密钥包装配置面板
 pub struct KeyWrapPanel;

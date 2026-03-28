@@ -254,7 +254,7 @@ impl VMConfigApp {
         let mut close_window = false;
         let mut copy_to_clipboard = false;
         let mut save_xml = false;
-        
+
         // 格式化XML内容
         let formatted_xml = match crate::xml_gen::XMLGenerator::format_xml(&self.generated_xml) {
             Ok(formatted) => formatted,

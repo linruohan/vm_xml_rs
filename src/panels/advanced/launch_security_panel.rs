@@ -1,8 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{
-    LaunchSecurityConfig, SecurityLabelConfig, TPMBackend, TPMConfig, VMConfig,
-};
+use crate::model::{LaunchSecurityConfig, SecurityLabelConfig, TPMBackend, TPMConfig, VMConfig};
 
 /// 启动安全配置面板
 pub struct LaunchSecurityPanel;

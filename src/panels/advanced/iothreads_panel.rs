@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{IOThread, IOThreadsConfig, VMConfig};
+use crate::model::{IOThread, IOThreadsConfig, VMConfig};
 
 /// IOThreads 配置面板
 pub struct IOThreadsPanel;

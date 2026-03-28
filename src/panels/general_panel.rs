@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::VMConfig;
+use crate::model::VMConfig;
 
 pub struct GeneralPanel;
 

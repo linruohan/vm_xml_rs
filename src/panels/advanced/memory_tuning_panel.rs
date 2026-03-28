@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{MemoryTuningConfig, VMConfig};
+use crate::model::{MemoryTuningConfig, VMConfig};
 
 /// 内存调优配置面板
 pub struct MemoryTuningPanel;

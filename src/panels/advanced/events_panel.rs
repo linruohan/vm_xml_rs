@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{EventsConfig, VMConfig};
+use crate::model::{EventsConfig, VMConfig};
 
 /// 系统事件配置面板
 pub struct EventsPanel;

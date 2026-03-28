@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{BootConfig, BootMenuConfig, LoaderConfig, VMConfig};
+use crate::model::{BootConfig, BootMenuConfig, LoaderConfig, VMConfig};
 
 pub struct OSPanel;
 

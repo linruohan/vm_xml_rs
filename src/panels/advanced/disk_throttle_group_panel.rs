@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{DiskThrottleGroupConfig, ThrottleConfig, VMConfig};
+use crate::model::{DiskThrottleGroupConfig, ThrottleConfig, VMConfig};
 
 /// 磁盘 I/O 限流组配置面板
 pub struct DiskThrottleGroupPanel;

@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{ResourcePartitioningConfig, VMConfig};
+use crate::model::{ResourcePartitioningConfig, VMConfig};
 
 /// 资源隔离与分区配置面板
 pub struct ResourcePartitioningPanel;

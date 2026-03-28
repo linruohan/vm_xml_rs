@@ -1,6 +1,6 @@
 use egui::RichText;
 
-use crate::model::vm_config::{CPUTuningConfig, EmulatorPin, VCPUPin, VMConfig};
+use crate::model::{CPUTuningConfig, EmulatorPin, VCPUPin, VMConfig};
 
 /// CPU 调优配置面板
 pub struct CPUTuningPanel;
