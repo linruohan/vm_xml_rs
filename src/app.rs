@@ -311,16 +311,16 @@ impl VMConfigApp {
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if ui.button(RichText::new("📋 预览 XML").strong()).clicked() {
-                    match XMLGenerator::generate(&self.config) {
-                        Ok(xml) => {
-                            self.generated_xml = XMLGenerator::format_xml(&xml);
-                            self.show_xml_preview = true;
-                        },
-                        Err(e) => {
-                            self.status_message = Some((format!("生成失败：{}", e), false));
-                        },
+                        match XMLGenerator::generate(&self.config) {
+                            Ok(xml) => {
+                                self.generated_xml = XMLGenerator::format_xml(&xml);
+                                self.show_xml_preview = true;
+                            },
+                            Err(e) => {
+                                self.status_message = Some((format!("生成失败：{}", e), false));
+                            },
+                        }
                     }
-                }
                     if ui.button(RichText::new("💾 导出 XML").strong()).clicked() {
                         if let Err(e) = self.export_xml() {
                             self.status_message = Some((format!("导出失败：{}", e), false));

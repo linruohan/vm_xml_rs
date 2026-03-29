@@ -122,11 +122,12 @@ impl XMLGenerator {
                 }
 
                 // 检查是否是简单标签（<tag>value</tag> 在同一行）
-                let is_simple_tag = Self::is_simple_tag(&chars, i, &trimmed_tag);
+                let is_simple_tag = Self::is_simple_tag(&chars, i, trimmed_tag);
 
                 if is_simple_tag {
                     // 简单标签：收集开始标签 + 内容 + 结束标签
-                    let (full_line, new_i) = Self::collect_simple_tag(&chars, i, tag_start, indent_level, indent);
+                    let (full_line, new_i) =
+                        Self::collect_simple_tag(&chars, i, tag_start, indent_level, indent);
                     result.push_str(&full_line);
                     result.push('\n');
                     i = new_i;
@@ -228,7 +229,7 @@ impl XMLGenerator {
     /// 收集简单标签的完整内容（包括缩进、开始标签、内容、结束标签）
     fn collect_simple_tag(
         chars: &[char],
-        pos: usize,
+        _pos: usize,
         tag_start: usize,
         indent_level: i32,
         indent: &str,

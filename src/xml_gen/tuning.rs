@@ -257,19 +257,55 @@ pub fn write_blkiotune<W: std::io::Write>(
 /// 写入资源分区配置
 pub fn write_resource<W: std::io::Write>(
     writer: &mut Writer<W>,
-    config: &VMConfig,
+    resource: &crate::model::ResourcePartitioningConfig,
 ) -> Result<(), String> {
-    if let Some(ref resource) = config.resource_partitioning {
-        let resource_elem = BytesStart::new("resource");
-        writer.write_event(Event::Start(resource_elem)).map_err(|e| e.to_string())?;
+    let resource_elem = BytesStart::new("resource");
+    writer.write_event(Event::Start(resource_elem)).map_err(|e| e.to_string())?;
 
-        if let Some(ref cpuset) = resource.cpuset {
-            write_element(writer, "partition", cpuset)?;
-        }
-
-        writer.write_event(Event::End(BytesEnd::new("resource"))).map_err(|e| e.to_string())?;
+    if let Some(ref cpuset) = resource.cpuset {
+        write_element(writer, "partition", cpuset)?;
+    }
+    if let Some(ref memnode) = resource.memnode {
+        write_element(writer, "memnode", memnode)?;
     }
 
+    writer.write_event(Event::End(BytesEnd::new("resource"))).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// 写入 NUMA 配置
+pub fn write_numa<W: std::io::Write>(
+    writer: &mut Writer<W>,
+    numa: &crate::model::NUMAConfig,
+) -> Result<(), String> {
+    let numa_elem = BytesStart::new("numa");
+    writer.write_event(Event::Start(numa_elem)).map_err(|e| e.to_string())?;
+
+    if let Some(ref cell_list) = numa.cell {
+        for cell in cell_list {
+            let mut cell_elem = BytesStart::new("cell");
+            cell_elem.push_attribute(("id", cell.id.to_string().as_str()));
+            cell_elem.push_attribute(("cpus", cell.cpus.as_str()));
+            cell_elem.push_attribute(("memory", cell.memory.to_string().as_str()));
+            if let Some(ref unit) = cell.unit {
+                cell_elem.push_attribute(("unit", unit.as_str()));
+            }
+            writer.write_event(Event::Start(cell_elem)).map_err(|e| e.to_string())?;
+
+            if let Some(ref memnode_list) = cell.memnode {
+                for memnode in memnode_list {
+                    let mut memnode_elem = BytesStart::new("memnode");
+                    memnode_elem.push_attribute(("cellid", memnode.cellid.to_string().as_str()));
+                    memnode_elem.push_attribute(("mode", memnode.mode.as_str()));
+                    writer.write_event(Event::Empty(memnode_elem)).map_err(|e| e.to_string())?;
+                }
+            }
+
+            writer.write_event(Event::End(BytesEnd::new("cell"))).map_err(|e| e.to_string())?;
+        }
+    }
+
+    writer.write_event(Event::End(BytesEnd::new("numa"))).map_err(|e| e.to_string())?;
     Ok(())
 }
 

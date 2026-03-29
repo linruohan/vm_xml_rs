@@ -38,6 +38,26 @@ pub struct DevicesConfig {
     pub filesystem: Option<Vec<crate::model::FilesystemConfig>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub controller: Option<Vec<crate::model::ControllerConfig>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hub: Option<Vec<crate::model::HubConfig>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub panic: Option<crate::model::PanicConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shmem: Option<Vec<crate::model::ShmemConfig>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub memory_device: Option<Vec<crate::model::MemoryDeviceConfig>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub iommu: Option<crate::model::IommuConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vsock: Option<crate::model::VsockConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub crypto: Option<crate::model::CryptoConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pstore: Option<crate::model::PstoreConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio: Option<crate::model::AudioConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hostdev: Option<Vec<crate::model::HostdevConfig>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -11,7 +11,9 @@ pub mod controller;
 pub mod disk;
 pub mod filesystem;
 pub mod graphics_video;
+pub mod hostdev;
 pub mod input_sound_tpm;
+pub mod misc_devices;
 pub mod network;
 pub mod serial_console;
 
@@ -87,6 +89,56 @@ pub fn write_devices<W: std::io::Write>(
         channel_watchdog_rng::write_rngs(writer, rng_list)?;
     }
     channel_watchdog_rng::write_memballoon(writer, config.devices.memballoon.as_ref())?;
+
+    // Hub 设备
+    if let Some(ref hub_list) = config.devices.hub {
+        misc_devices::write_hubs(writer, hub_list)?;
+    }
+
+    // Panic 设备
+    if let Some(ref panic) = config.devices.panic {
+        misc_devices::write_panic(writer, panic)?;
+    }
+
+    // Shmem 设备
+    if let Some(ref shmem_list) = config.devices.shmem {
+        misc_devices::write_shmems(writer, shmem_list)?;
+    }
+
+    // Memory Device 设备
+    if let Some(ref memory_device_list) = config.devices.memory_device {
+        misc_devices::write_memory_devices(writer, memory_device_list)?;
+    }
+
+    // IOMMU 设备
+    if let Some(ref iommu) = config.devices.iommu {
+        misc_devices::write_iommu(writer, iommu)?;
+    }
+
+    // Vsock 设备
+    if let Some(ref vsock) = config.devices.vsock {
+        misc_devices::write_vsock(writer, vsock)?;
+    }
+
+    // Crypto 设备
+    if let Some(ref crypto) = config.devices.crypto {
+        misc_devices::write_crypto(writer, crypto)?;
+    }
+
+    // Pstore 设备
+    if let Some(ref pstore) = config.devices.pstore {
+        misc_devices::write_pstore(writer, pstore)?;
+    }
+
+    // Audio 设备
+    if let Some(ref audio) = config.devices.audio {
+        misc_devices::write_audio(writer, audio)?;
+    }
+
+    // Hostdev 设备（主机设备直通）
+    if let Some(ref hostdev_list) = config.devices.hostdev {
+        hostdev::write_hostdevs(writer, hostdev_list)?;
+    }
 
     writer.write_event(Event::End(BytesEnd::new("devices"))).map_err(|e| e.to_string())?;
 

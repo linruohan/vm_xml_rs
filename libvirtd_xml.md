@@ -1,4 +1,454 @@
-# Domain XML format
+# VM XML 配置工具
+
+## 应用概述
+
+VM XML 配置工具是一个基于 Rust 和 egui 框架开发的图形化工具，用于生成和管理 libvirt 虚拟机配置 XML 文件。
+
+### 主要功能
+
+- **直观的图形界面**：通过标签页方式组织不同的配置选项，包括基础配置、操作系统引导、CPU、内存、设备等
+- **实时 XML 预览**：修改配置后可以实时查看生成的 XML 内容
+- **主题切换**：支持浅色、深色和蓝色三种主题模式
+- **XML 导出**：可以将生成的 XML 保存到文件或复制到剪贴板
+- **丰富的配置选项**：支持 libvirt XML 格式的大部分配置选项
+
+### 支持的配置选项
+
+- **基础配置**：虚拟机类型、名称、UUID、描述、vCPU、内存等
+- **操作系统引导**：固件选择、引导菜单、引导顺序、内核引导等
+- **CPU 配置**：拓扑结构、型号、特性、NUMA 等
+- **内存配置**：内存大小、最大内存、当前内存、内存后端配置等
+- **设备配置**：磁盘、网络接口、图形、控制台、输入设备、声音设备、TPM 等
+- **高级配置**：SMBIOS、IO 线程、CPU 调优、内存调优、NUMA 调优、块 IO 调优、资源分区、FC VMID、事件、电源管理、磁盘限流、虚拟机监控器特性、时间同步、性能监控、安全标签、密钥封装、启动安全等
+
+### 技术特点
+
+- 使用 Rust 语言开发，保证了工具的性能和安全性
+- 使用 egui 框架构建图形界面，提供流畅的用户体验
+- 模块化设计，代码结构清晰，易于维护和扩展
+- 支持多种虚拟化平台，主要针对 KVM/QEMU
+
+## 安装说明
+
+### 前提条件
+
+- Rust 开发环境（推荐 1.60+）
+- Cargo 包管理器
+- 支持的操作系统：Windows、Linux、macOS
+
+### 安装步骤
+
+1. **克隆代码仓库**
+
+   ```bash
+   git clone https://github.com/yourusername/vm_xml_rs.git
+   cd vm_xml_rs
+   ```
+
+2. **构建应用**
+
+   ```bash
+   cargo build --release
+   ```
+
+3. **运行应用**
+
+   ```bash
+   cargo run --release
+   ```
+
+### 依赖项
+
+应用依赖以下库：
+
+- `egui` - 图形用户界面框架
+- `eframe` - egui 的应用框架
+- `serde` - 序列化/反序列化库
+- `quick-xml` - XML 处理库
+- `uuid` - UUID 生成库
+- `rfd` - 文件对话框库
+
+## 使用指南
+
+### 基本操作
+
+1. **启动应用**
+
+   运行 `cargo run --release` 启动应用后，您将看到应用的主界面，包含多个标签页。
+
+2. **选择配置标签页**
+
+   - **基础配置**：设置虚拟机的基本信息，如名称、类型、vCPU 和内存
+   - **系统引导**：配置操作系统引导选项，如固件、引导顺序等
+   - **CPU**：设置 CPU 拓扑、型号和特性
+   - **内存**：配置内存大小和内存后端选项
+   - **设备**：添加和配置各种设备，如磁盘、网络接口、图形等
+   - **高级选项**：配置 SMBIOS、IO 线程、CPU 调优、内存调优、NUMA 调优、块 IO 调优、资源分区、FC VMID、事件、电源管理、磁盘限流、虚拟机监控器特性、时间同步、性能监控、安全标签、密钥封装、启动安全等
+
+3. **预览 XML**
+
+   点击底部的「预览 XML」按钮，可以实时查看生成的 XML 内容。
+
+4. **导出 XML**
+
+   - 点击底部的「导出 XML」按钮，选择保存位置，将生成的 XML 保存到文件
+   - 点击菜单中的「文件 -> 复制 XML 到剪贴板」，将 XML 复制到剪贴板
+
+5. **新建配置**
+
+   点击菜单中的「文件 -> 新建配置」，创建一个新的配置。
+
+6. **重置为默认值**
+
+   点击菜单中的「编辑 -> 重置为默认值」，将所有配置重置为默认值。
+
+### 主题切换
+
+点击菜单中的「视图 -> 主题切换」，可以在浅色、深色和蓝色三种主题之间切换。
+
+### 配置示例
+
+在「常见配置示例」章节中，您可以找到一些实用的虚拟机配置案例，帮助您快速创建符合需求的虚拟机配置。
+
+## 配置选项映射表
+
+下表列出了应用界面中的配置选项与 libvirt XML 元素的对应关系：
+
+### 基础配置
+
+| 应用界面选项 | libvirt XML 元素 | 说明 |
+|------------|----------------|------|
+| 虚拟机类型 | `<domain type="...">` | 设置虚拟机的虚拟化类型，如 kvm、qemu 等 |
+| 虚拟机名称 | `<name>` | 设置虚拟机的名称 |
+| UUID | `<uuid>` | 设置虚拟机的 UUID |
+| 描述 | `<description>` | 设置虚拟机的描述 |
+| vCPU 数量 | `<vcpu>` | 设置虚拟机的 vCPU 数量 |
+| 内存大小 | `<memory>` | 设置虚拟机的内存大小 |
+| 最大内存 | `<maxMemory>` | 设置虚拟机的最大内存 |
+| 当前内存 | `<currentMemory>` | 设置虚拟机的当前内存 |
+
+### 系统引导
+
+| 应用界面选项 | libvirt XML 元素 | 说明 |
+|------------|----------------|------|
+| 固件 | `<os firmware="...">` | 设置虚拟机的固件类型，如 bios 或 efi |
+| 引导菜单 | `<bootmenu>` | 启用或禁用引导菜单 |
+| 引导顺序 | `<boot dev="...">` | 设置虚拟机的引导顺序 |
+| 内核路径 | `<kernel>` | 设置内核路径（直接内核引导） |
+| initrd 路径 | `<initrd>` | 设置 initrd 路径（直接内核引导） |
+| 内核命令行 | `<cmdline>` | 设置内核命令行参数（直接内核引导） |
+
+### CPU 配置
+
+| 应用界面选项 | libvirt XML 元素 | 说明 |
+|------------|----------------|------|
+| CPU 拓扑 | `<cpu><topology>` | 设置 CPU 的拓扑结构，如 sockets、cores、threads |
+| CPU 型号 | `<cpu><model>` | 设置 CPU 的型号 |
+| CPU 特性 | `<cpu><feature>` | 设置 CPU 的特性 |
+| CPU NUMA | `<cpu><numa>` | 设置 CPU 的 NUMA 配置 |
+
+### 内存配置
+
+| 应用界面选项 | libvirt XML 元素 | 说明 |
+|------------|----------------|------|
+| 内存大小 | `<memory>` | 设置虚拟机的内存大小 |
+| 内存单位 | `<memory unit="...">` | 设置内存的单位，如 KiB、MiB、GiB 等 |
+| 内存后端 | `<memoryBacking>` | 设置内存后端选项，如 hugepages、locked 等 |
+
+### 设备配置
+
+| 应用界面选项 | libvirt XML 元素 | 说明 |
+|------------|----------------|------|
+| 磁盘 | `<disk>` | 添加和配置磁盘设备 |
+| 网络接口 | `<interface>` | 添加和配置网络接口 |
+| 图形 | `<graphics>` | 添加和配置图形设备 |
+| 控制台 | `<console>` | 添加和配置控制台设备 |
+| 串行端口 | `<serial>` | 添加和配置串行端口 |
+| 并行端口 | `<parallel>` | 添加和配置并行端口 |
+| 输入设备 | `<input>` | 添加和配置输入设备 |
+| 声音设备 | `<sound>` | 添加和配置声音设备 |
+| TPM | `<tpm>` | 添加和配置 TPM 设备 |
+| 内存气球 | `<memballoon>` | 添加和配置内存气球设备 |
+
+### 高级配置
+
+| 应用界面选项 | libvirt XML 元素 | 说明 |
+|------------|----------------|------|
+| SMBIOS | `<sysinfo type="smbios">` | 设置 SMBIOS 信息 |
+| IO 线程 | `<iothreads>` | 设置 IO 线程数量 |
+| CPU 调优 | `<cputune>` | 设置 CPU 调优选项 |
+| 内存调优 | `<memtune>` | 设置内存调优选项 |
+| NUMA 调优 | `<numatune>` | 设置 NUMA 调优选项 |
+| 块 IO 调优 | `<blkiotune>` | 设置块 IO 调优选项 |
+| 资源分区 | `<resource>` | 设置资源分区选项 |
+| FC VMID | `<fibrechannel>` | 设置 FC VMID 选项 |
+| 事件 | `<events>` | 设置事件选项 |
+| 电源管理 | `<pm>` | 设置电源管理选项 |
+| 磁盘限流 | `<diskThrottle>` | 设置磁盘限流选项 |
+| 虚拟机监控器特性 | `<features>` | 设置虚拟机监控器特性 |
+| 时间同步 | `<clock>` | 设置时间同步选项 |
+| 性能监控 | `<perf>` | 设置性能监控选项 |
+| 安全标签 | `<seclabel>` | 设置安全标签选项 |
+| 密钥封装 | `<keywrap>` | 设置密钥封装选项 |
+| 启动安全 | `<launchSecurity>` | 设置启动安全选项 |
+
+## 常见配置示例
+
+### 基本虚拟机配置
+
+以下是一个基本的虚拟机配置示例，适用于一般的桌面应用：
+
+```xml
+<domain type='kvm'>
+  <name>desktop-vm</name>
+  <uuid>5b4e6c3d-2f1a-4e5d-8c2b-9a8b7c6d5e4f</uuid>
+  <description>Basic desktop virtual machine</description>
+  <vcpu placement='static'>4</vcpu>
+  <memory unit='GiB'>8</memory>
+  <os>
+    <type arch='x86_64' machine='q35'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <cpu mode='host-passthrough'/>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='/var/lib/libvirt/images/desktop-vm.qcow2'/>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+    <interface type='network'>
+      <source network='default'/>
+      <model type='virtio'/>
+    </interface>
+    <graphics type='spice' autoport='yes'>
+      <listen type='address'/>
+    </graphics>
+    <console type='pty'/>
+  </devices>
+</domain>
+```
+
+### 高性能虚拟机配置
+
+以下是一个高性能虚拟机配置示例，适用于需要较高性能的工作负载：
+
+```xml
+<domain type='kvm'>
+  <name>high-performance-vm</name>
+  <uuid>6c5d4e3f-1a2b-5c4d-8e7f-9a8b7c6d5e4f</uuid>
+  <description>High performance virtual machine</description>
+  <vcpu placement='static'>8</vcpu>
+  <memory unit='GiB'>16</memory>
+  <cpu mode='host-passthrough'>
+    <topology sockets='1' cores='4' threads='2'/>
+  </cpu>
+  <memoryBacking>
+    <hugepages>
+      <page size='2' unit='M'/>
+    </hugepages>
+    <locked/>
+  </memoryBacking>
+  <os>
+    <type arch='x86_64' machine='q35'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='none' io='native'/>
+      <source file='/var/lib/libvirt/images/high-performance-vm.qcow2'/>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+    <interface type='network'>
+      <source network='default'/>
+      <model type='virtio'/>
+    </interface>
+    <graphics type='spice' autoport='yes'>
+      <listen type='address'/>
+    </graphics>
+    <console type='pty'/>
+  </devices>
+</domain>
+```
+
+### 服务器虚拟机配置
+
+以下是一个服务器虚拟机配置示例，适用于运行服务器应用：
+
+```xml
+<domain type='kvm'>
+  <name>server-vm</name>
+  <uuid>7d6e5f4e-3d2c-1b0a-9f8e-7d6c5b4a3f2e</uuid>
+  <description>Server virtual machine</description>
+  <vcpu placement='static'>16</vcpu>
+  <memory unit='GiB'>32</memory>
+  <cpu mode='host-passthrough'>
+    <topology sockets='2' cores='4' threads='2'/>
+  </cpu>
+  <os>
+    <type arch='x86_64' machine='q35'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='none' io='native'/>
+      <source file='/var/lib/libvirt/images/server-vm.qcow2'/>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+    <interface type='network'>
+      <source network='default'/>
+      <model type='virtio'/>
+    </interface>
+    <console type='pty'/>
+    <serial type='pty'/>
+  </devices>
+</domain>
+```
+
+### 带有多个磁盘的虚拟机配置
+
+以下是一个带有多个磁盘的虚拟机配置示例：
+
+```xml
+<domain type='kvm'>
+  <name>multi-disk-vm</name>
+  <uuid>8e7d6c5b-4a3f-2e1d-0c9b-8a7b6c5d4e3f</uuid>
+  <description>Virtual machine with multiple disks</description>
+  <vcpu placement='static'>4</vcpu>
+  <memory unit='GiB'>8</memory>
+  <os>
+    <type arch='x86_64' machine='q35'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+    <!-- 系统盘 -->
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='/var/lib/libvirt/images/multi-disk-vm-system.qcow2'/>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+    <!-- 数据盘 1 -->
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='/var/lib/libvirt/images/multi-disk-vm-data1.qcow2'/>
+      <target dev='vdb' bus='virtio'/>
+    </disk>
+    <!-- 数据盘 2 -->
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='/var/lib/libvirt/images/multi-disk-vm-data2.qcow2'/>
+      <target dev='vdc' bus='virtio'/>
+    </disk>
+    <interface type='network'>
+      <source network='default'/>
+      <model type='virtio'/>
+    </interface>
+    <graphics type='spice' autoport='yes'>
+      <listen type='address'/>
+    </graphics>
+    <console type='pty'/>
+  </devices>
+</domain>
+```
+
+## 故障排除
+
+### 常见问题及解决方案
+
+#### 1. 应用启动失败
+
+**问题**：应用无法启动，显示错误信息。
+
+**解决方案**：
+- 检查 Rust 环境是否正确安装
+- 检查依赖项是否安装完整
+- 尝试重新构建应用：`cargo build --release`
+
+#### 2. XML 生成失败
+
+**问题**：点击「预览 XML」或「导出 XML」时，显示生成失败的错误信息。
+
+**解决方案**：
+- 检查配置是否正确，特别是必填项是否已填写
+- 检查是否有冲突的配置选项
+- 查看错误信息，根据错误提示进行修复
+
+#### 3. 虚拟机无法启动
+
+**问题**：使用生成的 XML 配置启动虚拟机时失败。
+
+**解决方案**：
+- 检查 XML 配置是否符合 libvirt 的要求
+- 检查磁盘路径是否存在
+- 检查网络配置是否正确
+- 查看 libvirt 错误日志获取详细信息
+
+#### 4. 性能问题
+
+**问题**：虚拟机性能不佳。
+
+**解决方案**：
+- 启用 hugepages 内存后端
+- 配置 CPU 调优选项
+- 优化磁盘 IO 配置
+- 考虑使用 virtio 设备以获得更好的性能
+
+#### 5. 主题显示异常
+
+**问题**：应用主题显示异常或切换主题后界面错乱。
+
+**解决方案**：
+- 尝试重启应用
+- 检查 egui 版本是否兼容
+- 如果问题持续，尝试使用默认主题
+
+### 调试技巧
+
+1. **查看应用日志**：应用运行时会输出一些日志信息，可以通过终端查看。
+
+2. **验证 XML 格式**：使用 `virsh validate` 命令验证生成的 XML 格式是否正确：
+   ```bash
+   virsh validate /path/to/your/vm.xml
+   ```
+
+3. **检查 libvirt 状态**：使用 `virsh list --all` 查看所有虚拟机的状态。
+
+4. **查看虚拟机日志**：虚拟机的日志通常存储在 `/var/log/libvirt/qemu/` 目录下。
+
+## 应用特定功能
+
+### 主题切换
+
+应用支持三种主题模式：
+
+- **浅色主题**：适合在明亮的环境下使用
+- **深色主题**：适合在黑暗的环境下使用，减少眼睛疲劳
+- **蓝色主题**：提供一种现代、专业的外观
+
+切换主题的方法：
+1. 点击菜单中的「视图」
+2. 在下拉菜单中选择「主题切换」
+3. 选择您喜欢的主题
+
+### 实时 XML 预览
+
+应用提供实时 XML 预览功能，让您可以在修改配置的同时查看生成的 XML 内容。这有助于您快速了解配置选项对 XML 的影响，确保生成的 XML 符合您的预期。
+
+### XML 格式化
+
+应用提供 XML 格式化功能，使生成的 XML 更加清晰易读。格式化后的 XML 会添加适当的缩进和换行，便于查看和编辑。
+
+### 一键导出
+
+应用提供多种导出方式：
+
+- **保存到文件**：将生成的 XML 保存到指定的文件路径
+- **复制到剪贴板**：将生成的 XML 复制到剪贴板，方便粘贴到其他应用中
+
+## Domain XML format
 
 \[toc]
 
