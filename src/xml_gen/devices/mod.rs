@@ -16,6 +16,7 @@ pub mod input_sound_tpm;
 pub mod misc_devices;
 pub mod network;
 pub mod serial_console;
+pub mod smartcard_nvram;
 
 /// 写入设备配置（devices 部分）
 #[allow(clippy::too_many_arguments)]

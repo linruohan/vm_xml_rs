@@ -7,7 +7,9 @@ pub mod hostdev;
 pub mod input_sound_tpm;
 pub mod misc_devices;
 pub mod network;
+pub mod nvram;
 pub mod serial_console;
+pub mod smartcard;
 
 pub use common::*;
 // 以下导入用于 re-export，使得 crate::model::X 可用
@@ -41,6 +43,10 @@ pub use misc_devices::{
 #[allow(unused_imports)]
 pub use network::{InterfaceConfig, InterfaceModel, InterfaceSource, MacAddress};
 #[allow(unused_imports)]
+pub use nvram::NVRAMConfig;
+#[allow(unused_imports)]
 pub use serial_console::{
     ChannelConfig, ChannelTarget, ConsoleConfig, ParallelConfig, SerialConfig,
 };
+#[allow(unused_imports)]
+pub use smartcard::{SmartcardConfig, SmartcardProtocol, SmartcardSource};

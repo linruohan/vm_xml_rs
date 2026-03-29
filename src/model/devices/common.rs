@@ -58,6 +58,10 @@ pub struct DevicesConfig {
     pub audio: Option<crate::model::AudioConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hostdev: Option<Vec<crate::model::HostdevConfig>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub smartcard: Option<Vec<crate::model::SmartcardConfig>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nvram: Option<crate::model::NVRAMConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
