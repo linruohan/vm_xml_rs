@@ -3,9 +3,13 @@ name: Rust
 on:
   push:
     branches: ["main"]
+    tags:
+      - "v*"
   pull_request:
     branches: ["main"]
   workflow_dispatch:
+  release:
+    types: [created]
 
 env:
   CARGO_TERM_COLOR: always
@@ -54,3 +58,30 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: target/${{ matrix.target }}/release/${{ matrix.target_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+
+      - name: Create release archives
+        run: |
+          cd artifacts
+          zip -r vm_xml_tool-windows-x86_64.zip vm_xml_tool-windows-x86_64/
+          zip -r vm_xml_tool-linux-x86_64.zip vm_xml_tool-linux-x86_64/
+          zip -r vm_xml_tool-macos-x86_64.zip vm_xml_tool-macos-x86_64/
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/vm_xml_tool-windows-x86_64.zip
+            artifacts/vm_xml_tool-linux-x86_64.zip
+            artifacts/vm_xml_tool-macos-x86_64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

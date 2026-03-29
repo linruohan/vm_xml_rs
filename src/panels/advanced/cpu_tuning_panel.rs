@@ -1,8 +1,8 @@
 use crate::{
     model::{
-        CachetuneConfig, CPUTuningConfig, EmulatorPin, EmulatorschedConfig, IOThreadPin,
-        IOThreadschedConfig, MemorytuneConfig, MonitorConfig, NodeConfig, VCPUPin,
-        VCpuschedConfig, VMConfig,
+        CPUTuningConfig, CachetuneConfig, EmulatorPin, EmulatorschedConfig, IOThreadPin,
+        IOThreadschedConfig, MemorytuneConfig, MonitorConfig, NodeConfig, VCPUPin, VCpuschedConfig,
+        VMConfig,
     },
     panels::utils::*,
 };
@@ -202,38 +202,35 @@ impl CPUTuningPanel {
                                         ui.label("vCPUs:");
                                         ui.text_edit_singleline(&mut sched.vcpus);
                                         ui.label("调度策略:");
-                                        egui::ComboBox::from_id_source(format!(
-                                            "vcpu_sched_{}",
-                                            i
-                                        ))
-                                        .selected_text(&sched.scheduler)
-                                        .show_ui(ui, |ui| {
-                                            ui.selectable_value(
-                                                &mut sched.scheduler,
-                                                "fifo".to_string(),
-                                                "fifo",
-                                            );
-                                            ui.selectable_value(
-                                                &mut sched.scheduler,
-                                                "rr".to_string(),
-                                                "rr",
-                                            );
-                                            ui.selectable_value(
-                                                &mut sched.scheduler,
-                                                "other".to_string(),
-                                                "other",
-                                            );
-                                            ui.selectable_value(
-                                                &mut sched.scheduler,
-                                                "batch".to_string(),
-                                                "batch",
-                                            );
-                                            ui.selectable_value(
-                                                &mut sched.scheduler,
-                                                "idle".to_string(),
-                                                "idle",
-                                            );
-                                        });
+                                        egui::ComboBox::from_id_source(format!("vcpu_sched_{}", i))
+                                            .selected_text(&sched.scheduler)
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(
+                                                    &mut sched.scheduler,
+                                                    "fifo".to_string(),
+                                                    "fifo",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut sched.scheduler,
+                                                    "rr".to_string(),
+                                                    "rr",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut sched.scheduler,
+                                                    "other".to_string(),
+                                                    "other",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut sched.scheduler,
+                                                    "batch".to_string(),
+                                                    "batch",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut sched.scheduler,
+                                                    "idle".to_string(),
+                                                    "idle",
+                                                );
+                                            });
                                         ui.label("优先级:");
                                         let priority = sched.priority.get_or_insert(0);
                                         ui.add(egui::DragValue::new(priority).clamp_range(0..=99));
@@ -275,28 +272,25 @@ impl CPUTuningPanel {
                                         ui.label("IO 线程:");
                                         ui.text_edit_singleline(&mut sched.iothreads);
                                         ui.label("调度策略:");
-                                        egui::ComboBox::from_id_source(format!(
-                                            "io_sched_{}",
-                                            i
-                                        ))
-                                        .selected_text(&sched.scheduler)
-                                        .show_ui(ui, |ui| {
-                                            ui.selectable_value(
-                                                &mut sched.scheduler,
-                                                "fifo".to_string(),
-                                                "fifo",
-                                            );
-                                            ui.selectable_value(
-                                                &mut sched.scheduler,
-                                                "rr".to_string(),
-                                                "rr",
-                                            );
-                                            ui.selectable_value(
-                                                &mut sched.scheduler,
-                                                "other".to_string(),
-                                                "other",
-                                            );
-                                        });
+                                        egui::ComboBox::from_id_source(format!("io_sched_{}", i))
+                                            .selected_text(&sched.scheduler)
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(
+                                                    &mut sched.scheduler,
+                                                    "fifo".to_string(),
+                                                    "fifo",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut sched.scheduler,
+                                                    "rr".to_string(),
+                                                    "rr",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut sched.scheduler,
+                                                    "other".to_string(),
+                                                    "other",
+                                                );
+                                            });
                                         ui.label("优先级:");
                                         let priority = sched.priority.get_or_insert(0);
                                         ui.add(egui::DragValue::new(priority).clamp_range(0..=99));
@@ -425,9 +419,10 @@ impl CPUTuningPanel {
                                                         ui.selectable_value(level, 3, "L3");
                                                     });
                                                     ui.label("模式:");
-                                                    let mode = cache
-                                                        .mode
-                                                        .get_or_insert_with(|| "emulate".to_string());
+                                                    let mode =
+                                                        cache.mode.get_or_insert_with(|| {
+                                                            "emulate".to_string()
+                                                        });
                                                     egui::ComboBox::from_id_source(format!(
                                                         "cache_mode_{}_{}",
                                                         i, j
@@ -482,7 +477,10 @@ impl CPUTuningPanel {
                                                 ui.horizontal(|ui| {
                                                     ui.label(format!("Monitor {}", j + 1));
                                                     ui.label("Level:");
-                                                    ui.add(egui::DragValue::new(&mut monitor.level).clamp_range(1..=3));
+                                                    ui.add(
+                                                        egui::DragValue::new(&mut monitor.level)
+                                                            .clamp_range(1..=3),
+                                                    );
                                                     ui.label("vCPUs:");
                                                     ui.text_edit_singleline(&mut monitor.vcpus);
                                                     if delete_button(ui, None) {
@@ -513,10 +511,8 @@ impl CPUTuningPanel {
                     if let Some(ref mut mem_tune_list) = tuning.memorytune {
                         ui.horizontal(|ui| {
                             if add_button(ui, "➕ 添加内存带宽调优", colors) {
-                                mem_tune_list.push(MemorytuneConfig {
-                                    vcpus: "0".to_string(),
-                                    node: None,
-                                });
+                                mem_tune_list
+                                    .push(MemorytuneConfig { vcpus: "0".to_string(), node: None });
                             }
                         });
 

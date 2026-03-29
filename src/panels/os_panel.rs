@@ -630,5 +630,77 @@ impl OSPanel {
                 }
             }
         });
+
+        ui.add_space(8.0);
+
+        card_group(ui, "固件特性 (Feature)", None, colors, |ui| {
+            let os = config.general.os.as_mut();
+
+            if let Some(os) = os {
+                if os.feature.is_none() {
+                    os.feature = Some(Vec::new());
+                }
+
+                if let Some(ref mut feature_list) = os.feature {
+                    ui.horizontal(|ui| {
+                        if add_button(ui, "➕ 添加特性", colors) {
+                            feature_list.push(crate::model::FeatureConfig {
+                                enabled: "yes".to_string(),
+                                name: "enrolled-keys".to_string(),
+                            });
+                        }
+                    });
+
+                    let mut to_remove = None;
+                    for (i, feature) in feature_list.iter_mut().enumerate() {
+                        ui.push_id(i, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(format!("{}. ", i + 1));
+
+                                // 特性名称
+                                egui::ComboBox::from_id_source(format!("os_feature_name_{}", i))
+                                    .selected_text(&feature.name)
+                                    .width(150.0)
+                                    .show_ui(ui, |ui| {
+                                        let features = ["enrolled-keys", "secure-boot"];
+                                        for f in features {
+                                            ui.selectable_value(
+                                                &mut feature.name,
+                                                f.to_string(),
+                                                f,
+                                            );
+                                        }
+                                    });
+
+                                // 启用状态
+                                egui::ComboBox::from_id_source(format!("os_feature_enabled_{}", i))
+                                    .selected_text(&feature.enabled)
+                                    .width(80.0)
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(
+                                            &mut feature.enabled,
+                                            "yes".to_string(),
+                                            "启用",
+                                        );
+                                        ui.selectable_value(
+                                            &mut feature.enabled,
+                                            "no".to_string(),
+                                            "禁用",
+                                        );
+                                    });
+
+                                if delete_button(ui, None) {
+                                    to_remove = Some(i);
+                                }
+                            });
+                        });
+                    }
+
+                    if let Some(idx) = to_remove {
+                        feature_list.remove(idx);
+                    }
+                }
+            }
+        });
     }
 }

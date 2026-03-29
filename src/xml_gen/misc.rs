@@ -41,6 +41,273 @@ pub fn write_features<W: std::io::Write>(
         let features_elem = BytesStart::new("features");
         writer.write_event(Event::Start(features_elem)).map_err(|e| e.to_string())?;
 
+        // 基础特性（简单开关）
+        write_feature_state(writer, "pae", &hypervisor_features.pae)?;
+        write_feature_state(writer, "acpi", &hypervisor_features.acpi)?;
+        write_feature_state(writer, "apic", &hypervisor_features.apic)?;
+        write_feature_state(writer, "hap", &hypervisor_features.hap)?;
+        write_feature_state(writer, "viridian", &hypervisor_features.viridian)?;
+        write_feature_state(writer, "privnet", &hypervisor_features.privnet)?;
+        write_feature_state(writer, "pvspinlock", &hypervisor_features.pvspinlock)?;
+        write_feature_state(writer, "pmu", &hypervisor_features.pmu)?;
+        write_feature_state(writer, "vmport", &hypervisor_features.vmport)?;
+        write_feature_state(writer, "vmcoreinfo", &hypervisor_features.vmcoreinfo)?;
+        write_feature_state(writer, "htm", &hypervisor_features.htm)?;
+        write_feature_state(writer, "nested-hv", &hypervisor_features.nested_hv)?;
+        write_feature_state(writer, "ccf-assist", &hypervisor_features.ccf_assist)?;
+        write_feature_state(writer, "hrt", &hypervisor_features.hrt)?;
+        write_feature_state(writer, "async-teardown", &hypervisor_features.async_teardown)?;
+        write_feature_state(writer, "ras", &hypervisor_features.ras)?;
+        write_feature_state(writer, "ps2", &hypervisor_features.ps2)?;
+
+        // Hyper-V 特性
+        if let Some(ref hyperv) = hypervisor_features.hyperv {
+            let mut hyperv_elem = BytesStart::new("hyperv");
+            if let Some(ref mode) = hyperv.mode {
+                hyperv_elem.push_attribute(("mode", mode.as_str()));
+            }
+            writer.write_event(Event::Start(hyperv_elem)).map_err(|e| e.to_string())?;
+
+            write_feature_state_elem(writer, "relaxed", &hyperv.relaxed)?;
+            write_feature_state_elem(writer, "vapic", &hyperv.vapic)?;
+
+            if let Some(ref spinlocks) = hyperv.spinlocks {
+                let mut spinlocks_elem = BytesStart::new("spinlocks");
+                spinlocks_elem.push_attribute(("state", spinlocks.state.as_str()));
+                if let Some(retries) = spinlocks.retries {
+                    spinlocks_elem.push_attribute(("retries", retries.to_string().as_str()));
+                }
+                writer.write_event(Event::Empty(spinlocks_elem)).map_err(|e| e.to_string())?;
+            }
+
+            write_feature_state_elem(writer, "vpindex", &hyperv.vpindex)?;
+            write_feature_state_elem(writer, "runtime", &hyperv.runtime)?;
+            write_feature_state_elem(writer, "synic", &hyperv.synic)?;
+
+            if let Some(ref stimer) = hyperv.stimer {
+                let mut stimer_elem = BytesStart::new("stimer");
+                stimer_elem.push_attribute(("state", stimer.state.as_str()));
+                writer.write_event(Event::Start(stimer_elem)).map_err(|e| e.to_string())?;
+                if let Some(ref direct) = stimer.direct {
+                    let mut direct_elem = BytesStart::new("direct");
+                    direct_elem.push_attribute(("state", direct.state.as_str()));
+                    writer.write_event(Event::Empty(direct_elem)).map_err(|e| e.to_string())?;
+                }
+                writer
+                    .write_event(Event::End(BytesEnd::new("stimer")))
+                    .map_err(|e| e.to_string())?;
+            }
+
+            write_feature_state_elem(writer, "reset", &hyperv.reset)?;
+
+            if let Some(ref vendor_id) = hyperv.vendor_id {
+                let mut vendor_id_elem = BytesStart::new("vendor_id");
+                vendor_id_elem.push_attribute(("state", vendor_id.state.as_str()));
+                if let Some(ref value) = vendor_id.value {
+                    vendor_id_elem.push_attribute(("value", value.as_str()));
+                }
+                writer.write_event(Event::Empty(vendor_id_elem)).map_err(|e| e.to_string())?;
+            }
+
+            write_feature_state_elem(writer, "frequencies", &hyperv.frequencies)?;
+            write_feature_state_elem(writer, "reenlightenment", &hyperv.reenlightenment)?;
+
+            if let Some(ref tlbflush) = hyperv.tlbflush {
+                let mut tlbflush_elem = BytesStart::new("tlbflush");
+                tlbflush_elem.push_attribute(("state", tlbflush.state.as_str()));
+                writer.write_event(Event::Start(tlbflush_elem)).map_err(|e| e.to_string())?;
+                if let Some(ref direct) = tlbflush.direct {
+                    let mut direct_elem = BytesStart::new("direct");
+                    direct_elem.push_attribute(("state", direct.state.as_str()));
+                    writer.write_event(Event::Empty(direct_elem)).map_err(|e| e.to_string())?;
+                }
+                if let Some(ref extended) = tlbflush.extended {
+                    let mut extended_elem = BytesStart::new("extended");
+                    extended_elem.push_attribute(("state", extended.state.as_str()));
+                    writer.write_event(Event::Empty(extended_elem)).map_err(|e| e.to_string())?;
+                }
+                writer
+                    .write_event(Event::End(BytesEnd::new("tlbflush")))
+                    .map_err(|e| e.to_string())?;
+            }
+
+            write_feature_state_elem(writer, "ipi", &hyperv.ipi)?;
+            write_feature_state_elem(writer, "avic", &hyperv.avic)?;
+            write_feature_state_elem(writer, "evmcs", &hyperv.evmcs)?;
+            write_feature_state_elem(writer, "emsr_bitmap", &hyperv.emsr_bitmap)?;
+            write_feature_state_elem(writer, "xmm_input", &hyperv.xmm_input)?;
+
+            writer.write_event(Event::End(BytesEnd::new("hyperv"))).map_err(|e| e.to_string())?;
+        }
+
+        // KVM 特性
+        if let Some(ref kvm) = hypervisor_features.kvm {
+            let kvm_elem = BytesStart::new("kvm");
+            writer.write_event(Event::Start(kvm_elem)).map_err(|e| e.to_string())?;
+
+            write_feature_state_elem(writer, "hidden", &kvm.hidden)?;
+            write_feature_state_elem(writer, "hint-dedicated", &kvm.hint_dedicated)?;
+            write_feature_state_elem(writer, "poll-control", &kvm.poll_control)?;
+            write_feature_state_elem(writer, "pv-ipi", &kvm.pv_ipi)?;
+
+            if let Some(ref dirty_ring) = kvm.dirty_ring {
+                let mut dirty_ring_elem = BytesStart::new("dirty-ring");
+                dirty_ring_elem.push_attribute(("state", dirty_ring.state.as_str()));
+                if let Some(size) = dirty_ring.size {
+                    dirty_ring_elem.push_attribute(("size", size.to_string().as_str()));
+                }
+                writer.write_event(Event::Empty(dirty_ring_elem)).map_err(|e| e.to_string())?;
+            }
+
+            writer.write_event(Event::End(BytesEnd::new("kvm"))).map_err(|e| e.to_string())?;
+        }
+
+        // Xen 特性
+        if let Some(ref xen) = hypervisor_features.xen {
+            let xen_elem = BytesStart::new("xen");
+            writer.write_event(Event::Start(xen_elem)).map_err(|e| e.to_string())?;
+
+            write_feature_state_elem(writer, "e820_host", &xen.e820_host)?;
+
+            if let Some(ref passthrough) = xen.passthrough {
+                let mut passthrough_elem = BytesStart::new("passthrough");
+                passthrough_elem.push_attribute(("state", passthrough.state.as_str()));
+                if let Some(ref mode) = passthrough.mode {
+                    passthrough_elem.push_attribute(("mode", mode.as_str()));
+                }
+                writer.write_event(Event::Empty(passthrough_elem)).map_err(|e| e.to_string())?;
+            }
+
+            writer.write_event(Event::End(BytesEnd::new("xen"))).map_err(|e| e.to_string())?;
+        }
+
+        // GIC 配置
+        if let Some(ref gic) = hypervisor_features.gic {
+            let mut gic_elem = BytesStart::new("gic");
+            if let Some(ref version) = gic.version {
+                gic_elem.push_attribute(("version", version.as_str()));
+            }
+            writer.write_event(Event::Empty(gic_elem)).map_err(|e| e.to_string())?;
+        }
+
+        // SMM 配置
+        if let Some(ref smm) = hypervisor_features.smm {
+            let mut smm_elem = BytesStart::new("smm");
+            smm_elem.push_attribute(("state", smm.state.as_str()));
+            writer.write_event(Event::Start(smm_elem)).map_err(|e| e.to_string())?;
+
+            if let Some(ref tseg) = smm.tseg {
+                let mut tseg_elem = BytesStart::new("tseg");
+                if let Some(ref unit) = tseg.unit {
+                    tseg_elem.push_attribute(("unit", unit.as_str()));
+                }
+                writer
+                    .write_event(Event::Text(BytesText::new(&tseg.value.to_string())))
+                    .map_err(|e| e.to_string())?;
+                writer.write_event(Event::End(BytesEnd::new("tseg"))).map_err(|e| e.to_string())?;
+            }
+
+            writer.write_event(Event::End(BytesEnd::new("smm"))).map_err(|e| e.to_string())?;
+        }
+
+        // IOAPIC 配置
+        if let Some(ref ioapic) = hypervisor_features.ioapic {
+            let mut ioapic_elem = BytesStart::new("ioapic");
+            if let Some(ref driver) = ioapic.driver {
+                ioapic_elem.push_attribute(("driver", driver.as_str()));
+            }
+            writer.write_event(Event::Empty(ioapic_elem)).map_err(|e| e.to_string())?;
+        }
+
+        // HPT 配置
+        if let Some(ref hpt) = hypervisor_features.hpt {
+            let mut hpt_elem = BytesStart::new("hpt");
+            if let Some(ref resizing) = hpt.resizing {
+                hpt_elem.push_attribute(("resizing", resizing.as_str()));
+            }
+            writer.write_event(Event::Start(hpt_elem)).map_err(|e| e.to_string())?;
+
+            if let Some(ref maxpagesize) = hpt.maxpagesize {
+                let mut maxpagesize_elem = BytesStart::new("maxpagesize");
+                if let Some(ref unit) = maxpagesize.unit {
+                    maxpagesize_elem.push_attribute(("unit", unit.as_str()));
+                }
+                writer
+                    .write_event(Event::Text(BytesText::new(&maxpagesize.value.to_string())))
+                    .map_err(|e| e.to_string())?;
+                writer
+                    .write_event(Event::End(BytesEnd::new("maxpagesize")))
+                    .map_err(|e| e.to_string())?;
+            }
+
+            writer.write_event(Event::End(BytesEnd::new("hpt"))).map_err(|e| e.to_string())?;
+        }
+
+        // MSRs 配置
+        if let Some(ref msrs) = hypervisor_features.msrs {
+            let mut msrs_elem = BytesStart::new("msrs");
+            if let Some(ref unknown) = msrs.unknown {
+                msrs_elem.push_attribute(("unknown", unknown.as_str()));
+            }
+            writer.write_event(Event::Empty(msrs_elem)).map_err(|e| e.to_string())?;
+        }
+
+        // CFPC 配置
+        if let Some(ref cfpc) = hypervisor_features.cfpc {
+            let mut cfpc_elem = BytesStart::new("cfpc");
+            if let Some(ref value) = cfpc.value {
+                cfpc_elem.push_attribute(("value", value.as_str()));
+            }
+            writer.write_event(Event::Empty(cfpc_elem)).map_err(|e| e.to_string())?;
+        }
+
+        // SBBC 配置
+        if let Some(ref sbbc) = hypervisor_features.sbbc {
+            let mut sbbc_elem = BytesStart::new("sbbc");
+            if let Some(ref value) = sbbc.value {
+                sbbc_elem.push_attribute(("value", value.as_str()));
+            }
+            writer.write_event(Event::Empty(sbbc_elem)).map_err(|e| e.to_string())?;
+        }
+
+        // IBS 配置
+        if let Some(ref ibs) = hypervisor_features.ibs {
+            let mut ibs_elem = BytesStart::new("ibs");
+            if let Some(ref value) = ibs.value {
+                ibs_elem.push_attribute(("value", value.as_str()));
+            }
+            writer.write_event(Event::Empty(ibs_elem)).map_err(|e| e.to_string())?;
+        }
+
+        // TCG 配置
+        if let Some(ref tcg) = hypervisor_features.tcg {
+            let tcg_elem = BytesStart::new("tcg");
+            writer.write_event(Event::Start(tcg_elem)).map_err(|e| e.to_string())?;
+
+            if let Some(ref tb_cache) = tcg.tb_cache {
+                let mut tb_cache_elem = BytesStart::new("tb-cache");
+                if let Some(ref unit) = tb_cache.unit {
+                    tb_cache_elem.push_attribute(("unit", unit.as_str()));
+                }
+                writer
+                    .write_event(Event::Text(BytesText::new(&tb_cache.value.to_string())))
+                    .map_err(|e| e.to_string())?;
+                writer
+                    .write_event(Event::End(BytesEnd::new("tb-cache")))
+                    .map_err(|e| e.to_string())?;
+            }
+
+            writer.write_event(Event::End(BytesEnd::new("tcg"))).map_err(|e| e.to_string())?;
+        }
+
+        // AIA 配置
+        if let Some(ref aia) = hypervisor_features.aia {
+            let mut aia_elem = BytesStart::new("aia");
+            aia_elem.push_attribute(("value", aia.value.as_str()));
+            writer.write_event(Event::Empty(aia_elem)).map_err(|e| e.to_string())?;
+        }
+
+        // 通用特性列表
         if let Some(ref feature_list) = hypervisor_features.feature {
             for feature in feature_list {
                 let mut feature_elem = BytesStart::new("feature");
@@ -53,6 +320,35 @@ pub fn write_features<W: std::io::Write>(
         writer.write_event(Event::End(BytesEnd::new("features"))).map_err(|e| e.to_string())?;
     }
 
+    Ok(())
+}
+
+/// 写入特性状态（简单开关，如 <pae/>）
+fn write_feature_state<W: std::io::Write>(
+    writer: &mut Writer<W>,
+    name: &str,
+    state: &Option<String>,
+) -> Result<(), String> {
+    if let Some(ref value) = state {
+        if value == "on" || value.is_empty() {
+            let elem = BytesStart::new(name);
+            writer.write_event(Event::Empty(elem)).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+/// 写入带 state 属性的特性元素
+fn write_feature_state_elem<W: std::io::Write>(
+    writer: &mut Writer<W>,
+    name: &str,
+    feature: &Option<crate::model::hypervisor_features::FeatureState>,
+) -> Result<(), String> {
+    if let Some(ref f) = feature {
+        let mut elem = BytesStart::new(name);
+        elem.push_attribute(("state", f.state.as_str()));
+        writer.write_event(Event::Empty(elem)).map_err(|e| e.to_string())?;
+    }
     Ok(())
 }
 

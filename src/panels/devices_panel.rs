@@ -3314,6 +3314,42 @@ impl DevicesPanel {
                                         });
                                     ui.end_row();
                                 }
+
+                                if hostdev.device_type == "scsi" {
+                                    ui.label("rawio:");
+                                    let rawio = hostdev.rawio.clone().unwrap_or_else(|| "no".to_string());
+                                    egui::ComboBox::from_id_source(format!("scsi_rawio_{}", i))
+                                        .selected_text(&rawio)
+                                        .show_ui(ui, |ui| {
+                                            ui.selectable_value(&mut hostdev.rawio, Some("yes".to_string()), "yes");
+                                            ui.selectable_value(&mut hostdev.rawio, Some("no".to_string()), "no");
+                                        });
+                                    ui.end_row();
+
+                                    ui.label("只读:");
+                                    let readonly_checked = hostdev.readonly.is_some();
+                                    let mut readonly_state = readonly_checked;
+                                    if checkbox(ui, &mut readonly_state, "") {
+                                        if readonly_state {
+                                            hostdev.readonly = Some(());
+                                        } else {
+                                            hostdev.readonly = None;
+                                        }
+                                    }
+                                    ui.end_row();
+
+                                    ui.label("可共享:");
+                                    let shareable_checked = hostdev.shareable.is_some();
+                                    let mut shareable_state = shareable_checked;
+                                    if checkbox(ui, &mut shareable_state, "") {
+                                        if shareable_state {
+                                            hostdev.shareable = Some(());
+                                        } else {
+                                            hostdev.shareable = None;
+                                        }
+                                    }
+                                    ui.end_row();
+                                }
                             });
 
                             // Source 配置
@@ -3412,6 +3448,197 @@ impl DevicesPanel {
                                                 ui.end_row();
                                             }
                                         });
+                                    }
+
+                                    // SCSI 设备配置
+                                    if hostdev.device_type == "scsi" {
+                                        // 检查是否有 protocol 属性（iSCSI 场景）
+                                        let is_iscsi = source.protocol.as_ref().map_or(false, |p| p == "iscsi");
+
+                                        ui.add_space(5.0);
+                                        ui.horizontal(|ui| {
+                                            ui.label("SCSI 类型:");
+                                            let mut scsi_type = if is_iscsi { "iscsi".to_string() } else { "local".to_string() };
+                                            egui::ComboBox::from_id_source(format!("scsi_type_{}", i))
+                                                .selected_text(&scsi_type)
+                                                .show_ui(ui, |ui| {
+                                                    if ui.selectable_value(&mut scsi_type, "local".to_string(), "本地 SCSI").changed() {
+                                                        source.protocol = None;
+                                                        source.name = None;
+                                                        source.host = None;
+                                                        source.auth = None;
+                                                        source.initiator = None;
+                                                    }
+                                                    if ui.selectable_value(&mut scsi_type, "iscsi".to_string(), "iSCSI 网络存储").changed() {
+                                                        source.protocol = Some("iscsi".to_string());
+                                                    }
+                                                });
+                                        });
+                                        ui.add_space(5.0);
+
+                                        if !is_iscsi {
+                                            // 本地 SCSI 设备配置
+                                            grid(ui, format!("scsi_local_source_{}", i), 2, |ui| {
+                                                ui.label("rawio:");
+                                                let rawio = hostdev.rawio.clone().unwrap_or_else(|| "no".to_string());
+                                                egui::ComboBox::from_id_source(format!("scsi_rawio_{}", i))
+                                                    .selected_text(&rawio)
+                                                    .show_ui(ui, |ui| {
+                                                        ui.selectable_value(&mut hostdev.rawio, Some("yes".to_string()), "yes");
+                                                        ui.selectable_value(&mut hostdev.rawio, Some("no".to_string()), "no");
+                                                    });
+                                                ui.end_row();
+
+                                                ui.label("只读:");
+                                                let readonly = hostdev.readonly.is_some();
+                                                if checkbox(ui, &mut readonly.clone(), "") {
+                                                    if readonly {
+                                                        hostdev.readonly = Some(());
+                                                    } else {
+                                                        hostdev.readonly = None;
+                                                    }
+                                                }
+                                                ui.end_row();
+
+                                                ui.label("可共享:");
+                                                let shareable = hostdev.shareable.is_some();
+                                                if checkbox(ui, &mut shareable.clone(), "") {
+                                                    if shareable {
+                                                        hostdev.shareable = Some(());
+                                                    } else {
+                                                        hostdev.shareable = None;
+                                                    }
+                                                }
+                                                ui.end_row();
+                                            });
+
+                                            ui.add_space(5.0);
+                                            ui.collapsing("SCSI 适配器地址", |ui| {
+                                                if source.adapter.is_none() {
+                                                    source.adapter = Some(crate::model::devices::HostdevAdapter {
+                                                        name: "scsi_host0".to_string(),
+                                                    });
+                                                }
+                                                if let Some(ref mut adapter) = source.adapter {
+                                                    ui.horizontal(|ui| {
+                                                        ui.label("适配器名称:");
+                                                        ui.text_edit_singleline(&mut adapter.name);
+                                                    });
+                                                }
+                                            });
+
+                                            ui.add_space(5.0);
+                                            ui.collapsing("SCSI 总线地址", |ui| {
+                                                if source.scsi_address.is_none() {
+                                                    source.scsi_address = Some(crate::model::devices::HostdevSCSIAddress {
+                                                        bus: "0".to_string(),
+                                                        target: "0".to_string(),
+                                                        unit: "0".to_string(),
+                                                    });
+                                                }
+                                                if let Some(ref mut scsi_addr) = source.scsi_address {
+                                                    grid(ui, format!("scsi_addr_grid_{}", i), 3, |ui| {
+                                                        ui.label("bus:");
+                                                        ui.text_edit_singleline(&mut scsi_addr.bus);
+                                                        ui.label("target:");
+                                                        ui.text_edit_singleline(&mut scsi_addr.target);
+                                                        ui.label("unit:");
+                                                        ui.text_edit_singleline(&mut scsi_addr.unit);
+                                                    });
+                                                }
+                                            });
+                                        } else {
+                                            // iSCSI 网络存储配置
+                                            grid(ui, format!("scsi_iscsi_source_{}", i), 2, |ui| {
+                                                ui.label("IQN 名称:");
+                                                let name = source.name.get_or_insert_with(|| "".to_string());
+                                                ui.text_edit_singleline(name);
+                                                ui.end_row();
+
+                                                ui.label("主机:");
+                                                if source.host.is_none() {
+                                                    source.host = Some(crate::model::devices::HostdevHost {
+                                                        name: "".to_string(),
+                                                        port: Some("3260".to_string()),
+                                                    });
+                                                }
+                                                if let Some(ref mut host) = source.host {
+                                                    ui.text_edit_singleline(&mut host.name);
+                                                }
+                                                ui.end_row();
+
+                                                ui.label("端口:");
+                                                if let Some(ref mut host) = source.host {
+                                                    let port = host.port.get_or_insert_with(|| "3260".to_string());
+                                                    ui.text_edit_singleline(port);
+                                                }
+                                                ui.end_row();
+                                            });
+
+                                            ui.add_space(5.0);
+                                            ui.collapsing("认证配置", |ui| {
+                                                if source.auth.is_none() {
+                                                    source.auth = Some(crate::model::devices::HostdevAuth {
+                                                        username: "".to_string(),
+                                                        secret: None,
+                                                    });
+                                                }
+                                                if let Some(ref mut auth) = source.auth {
+                                                    ui.horizontal(|ui| {
+                                                        ui.label("用户名:");
+                                                        ui.text_edit_singleline(&mut auth.username);
+                                                    });
+                                                    ui.add_space(5.0);
+                                                    ui.collapsing("Secret 配置", |ui| {
+                                                        if auth.secret.is_none() {
+                                                            auth.secret = Some(crate::model::devices::HostdevSecret {
+                                                                secret_type: "iscsi".to_string(),
+                                                                usage: None,
+                                                                uuid: None,
+                                                            });
+                                                        }
+                                                        if let Some(ref mut secret) = auth.secret {
+                                                            ui.horizontal(|ui| {
+                                                                ui.label("类型:");
+                                                                ui.text_edit_singleline(&mut secret.secret_type);
+                                                            });
+                                                            ui.horizontal(|ui| {
+                                                                ui.label("Usage:");
+                                                                let usage = secret.usage.get_or_insert_with(|| "".to_string());
+                                                                ui.text_edit_singleline(usage);
+                                                            });
+                                                            ui.horizontal(|ui| {
+                                                                ui.label("UUID:");
+                                                                let uuid = secret.uuid.get_or_insert_with(|| "".to_string());
+                                                                ui.text_edit_singleline(uuid);
+                                                            });
+                                                        }
+                                                    });
+                                                }
+                                            });
+
+                                            ui.add_space(5.0);
+                                            ui.collapsing("发起者配置", |ui| {
+                                                if source.initiator.is_none() {
+                                                    source.initiator = Some(crate::model::devices::HostdevInitiator {
+                                                        iqn: None,
+                                                    });
+                                                }
+                                                if let Some(ref mut initiator) = source.initiator {
+                                                    if initiator.iqn.is_none() {
+                                                        initiator.iqn = Some(crate::model::devices::HostdevIQN {
+                                                            name: "".to_string(),
+                                                        });
+                                                    }
+                                                    if let Some(ref mut iqn) = initiator.iqn {
+                                                        ui.horizontal(|ui| {
+                                                            ui.label("发起者 IQN:");
+                                                            ui.text_edit_singleline(&mut iqn.name);
+                                                        });
+                                                    }
+                                                }
+                                            });
+                                        }
                                     }
                                 }
                             });

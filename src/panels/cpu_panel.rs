@@ -739,5 +739,121 @@ impl CPUPanel {
                 });
             }
         });
+
+        ui.add_space(8.0);
+
+        card_group(ui, "废弃特性配置 (Deprecated Features)", None, colors, |ui| {
+            ui.label(
+                RichText::new("仅适用于 S390 架构 (Since 11.0.0)")
+                    .small()
+                    .color(colors.text_secondary),
+            );
+
+            let mut has_deprecated = config.cpu.deprecated_features.is_some();
+            if checkbox(ui, &mut has_deprecated, "启用废弃特性配置") {
+                if has_deprecated {
+                    config.cpu.deprecated_features = Some(crate::model::DeprecatedFeaturesConfig {
+                        state: "off".to_string(),
+                        feature: None,
+                    });
+                } else {
+                    config.cpu.deprecated_features = None;
+                }
+            }
+
+            if let Some(ref mut deprecated) = config.cpu.deprecated_features {
+                ui.add_space(5.0);
+                grid(ui, "deprecated_features_grid", 2, |ui| {
+                    ui.label("状态:");
+                    egui::ComboBox::from_id_source("deprecated_features_state")
+                        .selected_text(&deprecated.state)
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(
+                                &mut deprecated.state,
+                                "on".to_string(),
+                                "on (启用)",
+                            );
+                            ui.selectable_value(
+                                &mut deprecated.state,
+                                "off".to_string(),
+                                "off (禁用)",
+                            );
+                        });
+                    ui.end_row();
+                });
+
+                ui.add_space(5.0);
+
+                // 特性列表
+                if deprecated.feature.is_none() {
+                    deprecated.feature = Some(Vec::new());
+                }
+                if let Some(ref mut feature_list) = deprecated.feature {
+                    ui.horizontal(|ui| {
+                        if add_button(ui, "➕ 添加特性", colors) {
+                            feature_list.push(CPUFeatureConfig {
+                                policy: "require".to_string(),
+                                name: "".to_string(),
+                            });
+                        }
+                    });
+
+                    let mut to_remove = None;
+                    for (i, feature) in feature_list.iter_mut().enumerate() {
+                        ui.push_id(i, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(format!("{}. ", i + 1));
+
+                                // 特性名称
+                                ui.text_edit_singleline(&mut feature.name);
+
+                                // 策略
+                                egui::ComboBox::from_id_source(format!(
+                                    "deprecated_feature_policy_{}",
+                                    i
+                                ))
+                                .selected_text(&feature.policy)
+                                .width(100.0)
+                                .show_ui(ui, |ui| {
+                                    ui.selectable_value(
+                                        &mut feature.policy,
+                                        "force".to_string(),
+                                        "force",
+                                    );
+                                    ui.selectable_value(
+                                        &mut feature.policy,
+                                        "require".to_string(),
+                                        "require",
+                                    );
+                                    ui.selectable_value(
+                                        &mut feature.policy,
+                                        "optional".to_string(),
+                                        "optional",
+                                    );
+                                    ui.selectable_value(
+                                        &mut feature.policy,
+                                        "disable".to_string(),
+                                        "disable",
+                                    );
+                                    ui.selectable_value(
+                                        &mut feature.policy,
+                                        "forbid".to_string(),
+                                        "forbid",
+                                    );
+                                });
+
+                                if delete_button(ui, None) {
+                                    to_remove = Some(i);
+                                }
+                            });
+                        });
+                    }
+
+                    if let Some(idx) = to_remove {
+                        feature_list.remove(idx);
+                    }
+                }
+            }
+        });
     }
 }
