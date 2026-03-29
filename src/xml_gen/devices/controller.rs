@@ -100,10 +100,27 @@ pub fn write_controllers<W: std::io::Write>(
             writer.write_event(Event::Empty(model_elem)).map_err(|e| e.to_string())?;
         }
 
-        if let Some(ref _target) = controller.target {
-            let target_elem = BytesStart::new("target");
-            writer.write_event(Event::Start(target_elem)).map_err(|e| e.to_string())?;
-            writer.write_event(Event::End(BytesEnd::new("target"))).map_err(|e| e.to_string())?;
+        if let Some(ref target) = controller.target {
+            let mut target_elem = BytesStart::new("target");
+            if let Some(ref target_type) = target.target_type {
+                target_elem.push_attribute(("type", target_type.as_str()));
+            }
+            if let Some(chassis_nr) = target.chassis_nr {
+                target_elem.push_attribute(("chassisNr", chassis_nr.to_string().as_str()));
+            }
+            if let Some(chassis) = target.chassis {
+                target_elem.push_attribute(("chassis", chassis.to_string().as_str()));
+            }
+            if let Some(port) = target.port {
+                target_elem.push_attribute(("port", port.to_string().as_str()));
+            }
+            writer.write_event(Event::Empty(target_elem)).map_err(|e| e.to_string())?;
+        }
+
+        if let Some(ref hotplug) = controller.hotplug {
+            let mut hotplug_elem = BytesStart::new("hotplug");
+            hotplug_elem.push_attribute(("enabled", hotplug.enabled.as_str()));
+            writer.write_event(Event::Empty(hotplug_elem)).map_err(|e| e.to_string())?;
         }
 
         if let Some(ref pcihole64) = controller.pcihole64 {
@@ -120,7 +137,9 @@ pub fn write_controllers<W: std::io::Write>(
         if let Some(ref serial) = controller.serial {
             let serial_elem = BytesStart::new("serial");
             writer.write_event(Event::Start(serial_elem)).map_err(|e| e.to_string())?;
-            writer.write_event(Event::Text(BytesText::new(serial))).map_err(|e| e.to_string())?;
+            writer
+                .write_event(Event::Text(BytesText::new(serial.as_str())))
+                .map_err(|e| e.to_string())?;
             writer.write_event(Event::End(BytesEnd::new("serial"))).map_err(|e| e.to_string())?;
         }
 

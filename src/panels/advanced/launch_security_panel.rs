@@ -50,10 +50,12 @@ impl LaunchSecurityPanel {
                     if launch_security.tpm.is_none() {
                         launch_security.tpm = Some(TPMConfig {
                             model: "tpm-tis".to_string(),
-                            backend: TPMBackend {
+                            backend: Some(TPMBackend {
                                 backend_type: "emulator".to_string(),
                                 version: Some("2.0".to_string()),
-                            },
+                                device: None,
+                                model: None,
+                            }),
                         });
                     }
                     if let Some(ref mut tpm) = launch_security.tpm {
@@ -63,17 +65,19 @@ impl LaunchSecurityPanel {
                             ui.end_row();
 
                             ui.label("后端类型:");
-                            ui.text_edit_singleline(&mut tpm.backend.backend_type);
-                            ui.end_row();
+                            if let Some(ref mut backend) = tpm.backend {
+                                ui.text_edit_singleline(&mut backend.backend_type);
+                                ui.end_row();
 
-                            ui.label("版本:");
-                            if let Some(ref mut version) = &mut tpm.backend.version {
-                                ui.text_edit_singleline(version);
-                            } else {
-                                let mut empty = String::new();
-                                ui.text_edit_singleline(&mut empty);
+                                ui.label("版本:");
+                                if let Some(ref mut version) = &mut backend.version {
+                                    ui.text_edit_singleline(version);
+                                } else {
+                                    let mut empty = String::new();
+                                    ui.text_edit_singleline(&mut empty);
+                                }
+                                ui.end_row();
                             }
-                            ui.end_row();
                         });
                     }
                 });

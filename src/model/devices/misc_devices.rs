@@ -82,6 +82,10 @@ pub struct MemoryDeviceSource {
     pub pagesize: Option<SizeConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nodemask: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alignsize: Option<SizeConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pmem: Option<()>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -92,6 +96,20 @@ pub struct MemoryDeviceTarget {
     pub node: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<LabelConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub readonly: Option<()>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub requested: Option<SizeConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current: Option<SizeConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address: Option<MemoryDeviceTargetAddress>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MemoryDeviceTargetAddress {
+    #[serde(rename = "@base", skip_serializing_if = "Option::is_none")]
+    pub base: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -183,10 +201,42 @@ pub struct PstoreConfig {
 pub struct AudioConfig {
     #[serde(rename = "@id", skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
+    #[serde(rename = "@model", skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<AudioSource>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input: Option<AudioStream>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub output: Option<AudioStream>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address: Option<AddressConfig>,
+}
+
+/// Audio 源 配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AudioSource {
+    #[serde(rename = "@mode", skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub backend: Option<AudioSourceBackend>,
+}
+
+/// Audio Source Backend 配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AudioSourceBackend {
+    #[serde(rename = "@type")]
+    pub backend_type: String,
+    #[serde(rename = "@server", skip_serializing_if = "Option::is_none")]
+    pub server: Option<String>,
+    #[serde(rename = "@name", skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(rename = "@device", skip_serializing_if = "Option::is_none")]
+    pub device: Option<String>,
+    #[serde(rename = "@format", skip_serializing_if = "Option::is_none")]
+    pub format: Option<String>,
+    #[serde(rename = "@global", skip_serializing_if = "Option::is_none")]
+    pub global: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

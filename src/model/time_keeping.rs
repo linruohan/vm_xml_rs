@@ -26,6 +26,23 @@ pub struct TimerConfig {
     pub frequency: Option<u32>,
     #[serde(rename = "@tickpolicy", skip_serializing_if = "Option::is_none")]
     pub tickpolicy: Option<String>,
+    #[serde(rename = "@track", skip_serializing_if = "Option::is_none")]
+    pub track: Option<String>,
+    #[serde(rename = "@mode", skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub catchup: Option<CatchupConfig>,
+}
+
+/// Timer catchup 配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CatchupConfig {
+    #[serde(rename = "@threshold", skip_serializing_if = "Option::is_none")]
+    pub threshold: Option<u32>,
+    #[serde(rename = "@slew", skip_serializing_if = "Option::is_none")]
+    pub slew: Option<u32>,
+    #[serde(rename = "@limit", skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

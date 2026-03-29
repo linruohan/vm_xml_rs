@@ -26,6 +26,17 @@ pub struct CPUConfig {
     pub check: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub migratable: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deprecated_features: Option<DeprecatedFeaturesConfig>,
+}
+
+/// CPU 废弃特性配置 (11.0.0, S390 guests)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeprecatedFeaturesConfig {
+    #[serde(rename = "@state")]
+    pub state: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub feature: Option<Vec<CPUFeatureConfig>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

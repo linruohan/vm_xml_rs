@@ -399,9 +399,236 @@ impl OSPanel {
         ui.add_space(8.0);
 
         card_group(ui, "ACPI 表", None, colors, |ui| {
-            // 注意：ACPIConfig 在 os.rs 中定义，需要确保模型中有此结构
-            // 这里暂时跳过，等待模型更新
-            ui.label("ACPI 表配置暂不支持");
+            let os = config.general.os.as_mut();
+
+            if let Some(os) = os {
+                let mut has_acpi = os.acpi.is_some();
+                if checkbox(ui, &mut has_acpi, "启用 ACPI 表配置") {
+                    if has_acpi {
+                        os.acpi = Some(crate::model::ACPIConfig {
+                            table: Some(vec![crate::model::ACITableConfig {
+                                table_type: "SSDT".to_string(),
+                                path: "/path/to/ssdt.aml".to_string(),
+                            }]),
+                        });
+                    } else {
+                        os.acpi = None;
+                    }
+                }
+
+                if let Some(ref mut acpi) = os.acpi {
+                    if acpi.table.is_none() {
+                        acpi.table = Some(Vec::new());
+                    }
+                    if let Some(ref mut table_list) = acpi.table {
+                        ui.horizontal(|ui| {
+                            if add_button(ui, "➕ 添加 ACPI 表", colors) {
+                                table_list.push(crate::model::ACITableConfig {
+                                    table_type: "SSDT".to_string(),
+                                    path: "".to_string(),
+                                });
+                            }
+                        });
+
+                        let mut to_remove = None;
+                        for (i, table) in table_list.iter_mut().enumerate() {
+                            ui.push_id(i, |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("表 {}:", i + 1));
+                                    egui::ComboBox::from_id_source(format!("acpi_type_{}", i))
+                                        .selected_text(&table.table_type)
+                                        .width(100.0)
+                                        .show_ui(ui, |ui| {
+                                            ui.selectable_value(
+                                                &mut table.table_type,
+                                                "SSDT".to_string(),
+                                                "SSDT",
+                                            );
+                                            ui.selectable_value(
+                                                &mut table.table_type,
+                                                "DSDT".to_string(),
+                                                "DSDT",
+                                            );
+                                        });
+                                    ui.text_edit_singleline(&mut table.path);
+                                    if delete_button(ui, None) {
+                                        to_remove = Some(i);
+                                    }
+                                });
+                            });
+                        }
+                        if let Some(idx) = to_remove {
+                            table_list.remove(idx);
+                        }
+                    }
+                }
+            }
+        });
+
+        ui.add_space(8.0);
+
+        card_group(ui, "Init 参数", None, colors, |ui| {
+            let os = config.general.os.as_mut();
+
+            if let Some(os) = os {
+                // initdir
+                ui.horizontal(|ui| {
+                    ui.label("initdir:");
+                    let initdir = os.initdir.get_or_insert_with(|| "".to_string());
+                    ui.text_edit_singleline(initdir);
+                });
+
+                ui.add_space(5.0);
+
+                // inituser
+                ui.horizontal(|ui| {
+                    ui.label("inituser:");
+                    let inituser = os.inituser.get_or_insert_with(|| "".to_string());
+                    ui.text_edit_singleline(inituser);
+                });
+
+                ui.add_space(5.0);
+
+                // initgroup
+                ui.horizontal(|ui| {
+                    ui.label("initgroup:");
+                    let initgroup = os.initgroup.get_or_insert_with(|| "".to_string());
+                    ui.text_edit_singleline(initgroup);
+                });
+
+                ui.add_space(5.0);
+
+                // initarg 列表
+                if os.initarg.is_none() {
+                    os.initarg = Some(Vec::new());
+                }
+                if let Some(ref mut initarg_list) = os.initarg {
+                    ui.horizontal(|ui| {
+                        if add_button(ui, "➕ 添加 init 参数", colors) {
+                            initarg_list.push("".to_string());
+                        }
+                    });
+
+                    let mut to_remove = None;
+                    for (i, arg) in initarg_list.iter_mut().enumerate() {
+                        ui.push_id(i, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(format!("参数 {}:", i + 1));
+                                ui.text_edit_singleline(arg);
+                                if delete_button(ui, None) {
+                                    to_remove = Some(i);
+                                }
+                            });
+                        });
+                    }
+                    if let Some(idx) = to_remove {
+                        initarg_list.remove(idx);
+                    }
+                }
+
+                ui.add_space(5.0);
+
+                // initenv 列表
+                if os.initenv.is_none() {
+                    os.initenv = Some(Vec::new());
+                }
+                if let Some(ref mut initenv_list) = os.initenv {
+                    ui.horizontal(|ui| {
+                        if add_button(ui, "➕ 添加 init 环境变量", colors) {
+                            initenv_list.push(crate::model::InitEnvConfig {
+                                name: "".to_string(),
+                                value: "".to_string(),
+                            });
+                        }
+                    });
+
+                    let mut to_remove = None;
+                    for (i, initenv) in initenv_list.iter_mut().enumerate() {
+                        ui.push_id(i, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(format!("环境变量 {}:", i + 1));
+                                ui.text_edit_singleline(&mut initenv.name);
+                                ui.label("=");
+                                ui.text_edit_singleline(&mut initenv.value);
+                                if delete_button(ui, None) {
+                                    to_remove = Some(i);
+                                }
+                            });
+                        });
+                    }
+                    if let Some(idx) = to_remove {
+                        initenv_list.remove(idx);
+                    }
+                }
+            }
+        });
+
+        ui.add_space(8.0);
+
+        card_group(ui, "ID 映射", None, colors, |ui| {
+            let os = config.general.os.as_mut();
+
+            if let Some(os) = os {
+                let mut has_idmap = os.idmap.is_some();
+                if checkbox(ui, &mut has_idmap, "启用 ID 映射") {
+                    if has_idmap {
+                        os.idmap = Some(crate::model::IdMapConfig {
+                            uid: Some(crate::model::IdMapEntry {
+                                start: 0,
+                                target: 1000,
+                                count: 65536,
+                            }),
+                            gid: Some(crate::model::IdMapEntry {
+                                start: 0,
+                                target: 1000,
+                                count: 65536,
+                            }),
+                        });
+                    } else {
+                        os.idmap = None;
+                    }
+                }
+
+                if let Some(ref mut idmap) = os.idmap {
+                    ui.add_space(5.0);
+
+                    // UID 映射
+                    ui.label("UID 映射:");
+                    if idmap.uid.is_none() {
+                        idmap.uid =
+                            Some(crate::model::IdMapEntry { start: 0, target: 1000, count: 65536 });
+                    }
+                    if let Some(ref mut uid) = idmap.uid {
+                        grid(ui, "uid_map_grid", 3, |ui| {
+                            ui.label("start:");
+                            ui.add(egui::Slider::new(&mut uid.start, 0..=65535));
+                            ui.label("target:");
+                            ui.add(egui::Slider::new(&mut uid.target, 0..=65535));
+                            ui.label("count:");
+                            ui.add(egui::Slider::new(&mut uid.count, 1..=65536));
+                        });
+                    }
+
+                    ui.add_space(5.0);
+
+                    // GID 映射
+                    ui.label("GID 映射:");
+                    if idmap.gid.is_none() {
+                        idmap.gid =
+                            Some(crate::model::IdMapEntry { start: 0, target: 1000, count: 65536 });
+                    }
+                    if let Some(ref mut gid) = idmap.gid {
+                        grid(ui, "gid_map_grid", 3, |ui| {
+                            ui.label("start:");
+                            ui.add(egui::Slider::new(&mut gid.start, 0..=65535));
+                            ui.label("target:");
+                            ui.add(egui::Slider::new(&mut gid.target, 0..=65535));
+                            ui.label("count:");
+                            ui.add(egui::Slider::new(&mut gid.count, 1..=65536));
+                        });
+                    }
+                }
+            }
         });
     }
 }

@@ -48,7 +48,111 @@ pub fn write_disks<W: std::io::Write>(
             if let Some(queue_size) = driver.queue_size {
                 driver_elem.push_attribute(("queue_size", queue_size.to_string().as_str()));
             }
-            writer.write_event(Event::Empty(driver_elem)).map_err(|e| e.to_string())?;
+            if let Some(iothread) = driver.iothread {
+                driver_elem.push_attribute(("iothread", iothread.to_string().as_str()));
+            }
+            if let Some(ref discard_no_unref) = driver.discard_no_unref {
+                driver_elem.push_attribute(("discard_no_unref", discard_no_unref.as_str()));
+            }
+
+            // 写入 iothreads 子元素
+            if let Some(ref iothreads) = driver.iothreads {
+                writer.write_event(Event::Start(driver_elem)).map_err(|e| e.to_string())?;
+
+                let iothreads_elem = BytesStart::new("iothreads");
+                writer.write_event(Event::Start(iothreads_elem)).map_err(|e| e.to_string())?;
+                for iothread in iothreads {
+                    let mut iothread_elem = BytesStart::new("iothread");
+                    iothread_elem.push_attribute(("id", iothread.id.to_string().as_str()));
+                    writer.write_event(Event::Empty(iothread_elem)).map_err(|e| e.to_string())?;
+                }
+                writer
+                    .write_event(Event::End(BytesEnd::new("iothreads")))
+                    .map_err(|e| e.to_string())?;
+
+                // 写入 statistics 子元素
+                if let Some(ref statistics) = driver.statistics {
+                    let statistics_elem = BytesStart::new("statistics");
+                    writer.write_event(Event::Start(statistics_elem)).map_err(|e| e.to_string())?;
+
+                    if let Some(ref statistic_list) = statistics.statistic {
+                        for statistic in statistic_list {
+                            let mut statistic_elem = BytesStart::new("statistic");
+                            statistic_elem.push_attribute((
+                                "interval",
+                                statistic.interval.to_string().as_str(),
+                            ));
+                            writer
+                                .write_event(Event::Empty(statistic_elem))
+                                .map_err(|e| e.to_string())?;
+                        }
+                    }
+
+                    if let Some(ref latency_histogram_list) = statistics.latency_histogram {
+                        for histogram in latency_histogram_list {
+                            write_latency_histogram(writer, histogram)?;
+                        }
+                    }
+
+                    writer
+                        .write_event(Event::End(BytesEnd::new("statistics")))
+                        .map_err(|e| e.to_string())?;
+                }
+
+                // 写入 latency-histogram 子元素（直接在 driver 下）
+                if let Some(ref latency_histogram_list) = driver.latency_histogram {
+                    for histogram in latency_histogram_list {
+                        write_latency_histogram(writer, histogram)?;
+                    }
+                }
+
+                writer
+                    .write_event(Event::End(BytesEnd::new("driver")))
+                    .map_err(|e| e.to_string())?;
+            } else if driver.statistics.is_some() || driver.latency_histogram.is_some() {
+                // 没有 iothreads 但有 statistics 或 latency_histogram
+                writer.write_event(Event::Start(driver_elem)).map_err(|e| e.to_string())?;
+
+                if let Some(ref statistics) = driver.statistics {
+                    let statistics_elem = BytesStart::new("statistics");
+                    writer.write_event(Event::Start(statistics_elem)).map_err(|e| e.to_string())?;
+
+                    if let Some(ref statistic_list) = statistics.statistic {
+                        for statistic in statistic_list {
+                            let mut statistic_elem = BytesStart::new("statistic");
+                            statistic_elem.push_attribute((
+                                "interval",
+                                statistic.interval.to_string().as_str(),
+                            ));
+                            writer
+                                .write_event(Event::Empty(statistic_elem))
+                                .map_err(|e| e.to_string())?;
+                        }
+                    }
+
+                    if let Some(ref latency_histogram_list) = statistics.latency_histogram {
+                        for histogram in latency_histogram_list {
+                            write_latency_histogram(writer, histogram)?;
+                        }
+                    }
+
+                    writer
+                        .write_event(Event::End(BytesEnd::new("statistics")))
+                        .map_err(|e| e.to_string())?;
+                }
+
+                if let Some(ref latency_histogram_list) = driver.latency_histogram {
+                    for histogram in latency_histogram_list {
+                        write_latency_histogram(writer, histogram)?;
+                    }
+                }
+
+                writer
+                    .write_event(Event::End(BytesEnd::new("driver")))
+                    .map_err(|e| e.to_string())?;
+            } else {
+                writer.write_event(Event::Empty(driver_elem)).map_err(|e| e.to_string())?;
+            }
         }
 
         if let Some(ref source) = disk.source {
@@ -309,5 +413,30 @@ pub fn write_disks<W: std::io::Write>(
 
         writer.write_event(Event::End(BytesEnd::new("disk"))).map_err(|e| e.to_string())?;
     }
+    Ok(())
+}
+
+/// 写入 latency-histogram 元素
+fn write_latency_histogram<W: std::io::Write>(
+    writer: &mut Writer<W>,
+    config: &crate::model::devices::disk::LatencyHistogramConfig,
+) -> Result<(), String> {
+    let mut histogram_elem = BytesStart::new("latency-histogram");
+    if let Some(ref histogram_type) = config.histogram_type {
+        histogram_elem.push_attribute(("type", histogram_type.as_str()));
+    }
+    writer.write_event(Event::Start(histogram_elem)).map_err(|e| e.to_string())?;
+
+    if let Some(ref bin_list) = config.bin {
+        for bin in bin_list {
+            let mut bin_elem = BytesStart::new("bin");
+            bin_elem.push_attribute(("start", bin.start.to_string().as_str()));
+            writer.write_event(Event::Empty(bin_elem)).map_err(|e| e.to_string())?;
+        }
+    }
+
+    writer
+        .write_event(Event::End(BytesEnd::new("latency-histogram")))
+        .map_err(|e| e.to_string())?;
     Ok(())
 }

@@ -61,7 +61,13 @@ pub struct DevicesConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub smartcard: Option<Vec<crate::model::SmartcardConfig>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub nvram: Option<crate::model::NVRAMConfig>,
+    pub nvram: Option<crate::model::devices::DeviceNVRAMConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub redirdev: Option<Vec<crate::model::devices::RedirdevConfig>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub redirfilter: Option<crate::model::devices::RedirfilterConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lease: Option<crate::model::devices::LeaseConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -5,23 +5,32 @@ pub mod filesystem;
 pub mod graphics_video;
 pub mod hostdev;
 pub mod input_sound_tpm;
+pub mod lease;
 pub mod misc_devices;
 pub mod network;
 pub mod nvram;
+pub mod redirdev;
 pub mod serial_console;
 pub mod smartcard;
 
-pub use common::*;
 // 以下导入用于 re-export，使得 crate::model::X 可用
 #[allow(unused_imports)]
-pub use controller::ControllerConfig;
+pub use common::{
+    AddressConfig, AliasConfig, BootOrderConfig, DevicesConfig, OemString, SMBIOSBlock,
+    SMBIOSEntry, SysInfoConfig, SysInfoEntry,
+};
+#[allow(unused_imports)]
+pub use controller::{ControllerConfig, ControllerDriver, ControllerHotplug};
 #[allow(unused_imports)]
 pub use disk::{
     BlockIOConfig, DiskConfig, DiskDriver, DiskSource, DiskTarget, EncryptionConfig,
     EncryptionSecret, GeometryConfig, IOtuneConfig, ThrottleFilter,
 };
 #[allow(unused_imports)]
-pub use filesystem::FilesystemConfig;
+pub use filesystem::{
+    FilesystemBinary, FilesystemCache, FilesystemConfig, FilesystemDriver, FilesystemLock,
+    FilesystemSandbox, FilesystemSource, FilesystemTarget, FilesystemThreadPool,
+};
 #[allow(unused_imports)]
 pub use graphics_video::{GraphicsConfig, VideoConfig, VideoModel};
 #[allow(unused_imports)]
@@ -32,18 +41,26 @@ pub use hostdev::{
 };
 #[allow(unused_imports)]
 pub use input_sound_tpm::{
-    InputConfig, MemballoonConfig, RngConfig, SoundConfig, TPMBackend, TPMConfig, WatchdogConfig,
+    InputConfig, InputDriver, InputSource, MemballoonConfig, MemballoonStats, RngBackend,
+    RngConfig, RngRate, RngSize, SoundCodec, SoundConfig, TPMBackend, TPMConfig, WatchdogConfig,
 };
 #[allow(unused_imports)]
+pub use lease::{LeaseConfig, LeaseTarget};
+#[allow(unused_imports)]
 pub use misc_devices::{
-    AudioConfig, AudioStream, CryptoBackend, CryptoConfig, HubConfig, IommuConfig,
-    MemoryDeviceConfig, MemoryDeviceTarget, PanicConfig, PstoreConfig, ShmemConfig, ShmemModel,
-    SizeConfig, VsockConfig, VsockSource,
+    AudioConfig, AudioSource, AudioSourceBackend, AudioStream, CryptoBackend, CryptoConfig,
+    HubConfig, IommuConfig, IommuDriver, LabelConfig, MemoryDeviceConfig, MemoryDeviceSource,
+    MemoryDeviceTarget, MemoryDeviceTargetAddress, MsiConfig, PanicConfig, PstoreConfig,
+    ShmemConfig, ShmemModel, ShmemServer, SizeConfig, VsockConfig, VsockSource,
 };
 #[allow(unused_imports)]
 pub use network::{InterfaceConfig, InterfaceModel, InterfaceSource, MacAddress};
 #[allow(unused_imports)]
-pub use nvram::NVRAMConfig;
+pub use nvram::DeviceNVRAMConfig;
+#[allow(unused_imports)]
+pub use redirdev::{
+    RedirdevConfig, RedirdevProtocol, RedirdevSource, RedirfilterConfig, UsbDevFilter,
+};
 #[allow(unused_imports)]
 pub use serial_console::{
     ChannelConfig, ChannelTarget, ConsoleConfig, ParallelConfig, SerialConfig,

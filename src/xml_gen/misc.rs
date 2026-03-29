@@ -80,7 +80,37 @@ pub fn write_clock<W: std::io::Write>(
                     if let Some(ref tickpolicy) = timer.tickpolicy {
                         timer_elem.push_attribute(("tickpolicy", tickpolicy.as_str()));
                     }
-                    writer.write_event(Event::Empty(timer_elem)).map_err(|e| e.to_string())?;
+                    if let Some(ref track) = timer.track {
+                        timer_elem.push_attribute(("track", track.as_str()));
+                    }
+                    if let Some(ref mode) = timer.mode {
+                        timer_elem.push_attribute(("mode", mode.as_str()));
+                    }
+
+                    if let Some(ref catchup) = timer.catchup {
+                        writer.write_event(Event::Start(timer_elem)).map_err(|e| e.to_string())?;
+
+                        let mut catchup_elem = BytesStart::new("catchup");
+                        if let Some(threshold) = catchup.threshold {
+                            catchup_elem
+                                .push_attribute(("threshold", threshold.to_string().as_str()));
+                        }
+                        if let Some(slew) = catchup.slew {
+                            catchup_elem.push_attribute(("slew", slew.to_string().as_str()));
+                        }
+                        if let Some(limit) = catchup.limit {
+                            catchup_elem.push_attribute(("limit", limit.to_string().as_str()));
+                        }
+                        writer
+                            .write_event(Event::Empty(catchup_elem))
+                            .map_err(|e| e.to_string())?;
+
+                        writer
+                            .write_event(Event::End(BytesEnd::new("timer")))
+                            .map_err(|e| e.to_string())?;
+                    } else {
+                        writer.write_event(Event::Empty(timer_elem)).map_err(|e| e.to_string())?;
+                    }
                 }
             }
 

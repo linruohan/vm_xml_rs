@@ -126,6 +126,50 @@ pub struct DiskDriver {
     pub queues: Option<u32>,
     #[serde(rename = "@queue_size", skip_serializing_if = "Option::is_none")]
     pub queue_size: Option<u32>,
+    #[serde(rename = "@iothread", skip_serializing_if = "Option::is_none")]
+    pub iothread: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub iothreads: Option<Vec<DiskIOThread>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub statistics: Option<DiskStatistics>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latency_histogram: Option<Vec<LatencyHistogramConfig>>,
+    #[serde(rename = "@discard_no_unref", skip_serializing_if = "Option::is_none")]
+    pub discard_no_unref: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiskIOThread {
+    #[serde(rename = "@id")]
+    pub id: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiskStatistics {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub statistic: Option<Vec<StatisticInterval>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latency_histogram: Option<Vec<LatencyHistogramConfig>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StatisticInterval {
+    #[serde(rename = "@interval")]
+    pub interval: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LatencyHistogramConfig {
+    #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
+    pub histogram_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bin: Option<Vec<HistogramBin>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HistogramBin {
+    #[serde(rename = "@start")]
+    pub start: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

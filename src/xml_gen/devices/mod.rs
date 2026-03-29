@@ -13,8 +13,10 @@ pub mod filesystem;
 pub mod graphics_video;
 pub mod hostdev;
 pub mod input_sound_tpm;
+pub mod lease;
 pub mod misc_devices;
 pub mod network;
+pub mod redirdev;
 pub mod serial_console;
 pub mod smartcard_nvram;
 
@@ -139,6 +141,31 @@ pub fn write_devices<W: std::io::Write>(
     // Hostdev 设备（主机设备直通）
     if let Some(ref hostdev_list) = config.devices.hostdev {
         hostdev::write_hostdevs(writer, hostdev_list)?;
+    }
+
+    // Smartcard 设备
+    if let Some(ref smartcard_list) = config.devices.smartcard {
+        smartcard_nvram::write_smartcards(writer, smartcard_list)?;
+    }
+
+    // NVRAM 设备
+    if let Some(ref nvram) = config.devices.nvram {
+        smartcard_nvram::write_nvram(writer, nvram)?;
+    }
+
+    // USB 重定向设备
+    if let Some(ref redirdev_list) = config.devices.redirdev {
+        redirdev::write_redirdevs(writer, redirdev_list)?;
+    }
+
+    // USB 重定向过滤器
+    if let Some(ref redirfilter) = config.devices.redirfilter {
+        redirdev::write_redirfilter(writer, redirfilter)?;
+    }
+
+    // 租约设备
+    if let Some(ref lease) = config.devices.lease {
+        lease::write_lease(writer, lease)?;
     }
 
     writer.write_event(Event::End(BytesEnd::new("devices"))).map_err(|e| e.to_string())?;

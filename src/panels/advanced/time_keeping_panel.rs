@@ -64,6 +64,9 @@ impl TimeKeepingPanel {
                                         present: Some("yes".to_string()),
                                         frequency: None,
                                         tickpolicy: None,
+                                        track: None,
+                                        mode: None,
+                                        catchup: None,
                                     });
                                 }
                             });

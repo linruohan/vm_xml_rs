@@ -18,6 +18,7 @@ pub fn write_cpu<W: std::io::Write>(
         || config.cpu.cache.is_some()
         || config.cpu.maxphysaddr.is_some()
         || config.cpu.numa.is_some()
+        || config.cpu.deprecated_features.is_some()
     {
         let mut cpu_elem = BytesStart::new("cpu");
         if let Some(ref mode) = config.cpu.mode {
@@ -203,6 +204,26 @@ pub fn write_cpu<W: std::io::Write>(
             }
 
             writer.write_event(Event::End(BytesEnd::new("numa"))).map_err(|e| e.to_string())?;
+        }
+
+        // deprecated_features (11.0.0, S390 guests)
+        if let Some(ref deprecated_features) = config.cpu.deprecated_features {
+            let mut deprecated_elem = BytesStart::new("deprecated_features");
+            deprecated_elem.push_attribute(("state", deprecated_features.state.as_str()));
+            writer.write_event(Event::Start(deprecated_elem)).map_err(|e| e.to_string())?;
+
+            if let Some(ref feature_list) = deprecated_features.feature {
+                for feature in feature_list {
+                    let mut feature_elem = BytesStart::new("feature");
+                    feature_elem.push_attribute(("name", feature.name.as_str()));
+                    feature_elem.push_attribute(("policy", feature.policy.as_str()));
+                    writer.write_event(Event::Empty(feature_elem)).map_err(|e| e.to_string())?;
+                }
+            }
+
+            writer
+                .write_event(Event::End(BytesEnd::new("deprecated_features")))
+                .map_err(|e| e.to_string())?;
         }
 
         writer.write_event(Event::End(BytesEnd::new("cpu"))).map_err(|e| e.to_string())?;

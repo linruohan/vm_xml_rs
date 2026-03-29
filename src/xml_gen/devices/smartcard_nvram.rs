@@ -3,7 +3,7 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::devices::{NVRAMConfig, SmartcardConfig};
+use crate::model::devices::{DeviceNVRAMConfig, SmartcardConfig};
 
 /// 写入智能卡设备配置
 pub fn write_smartcards<W: std::io::Write>(
@@ -24,18 +24,22 @@ pub fn write_smartcards<W: std::io::Write>(
                 for cert in certs {
                     let cert_elem = BytesStart::new("certificate");
                     writer.write_event(Event::Start(cert_elem)).map_err(|e| e.to_string())?;
-                    writer.write_event(Event::Text(BytesText::new(cert)))
+                    writer
+                        .write_event(Event::Text(BytesText::new(cert)))
                         .map_err(|e| e.to_string())?;
-                    writer.write_event(Event::End(BytesEnd::new("certificate")))
+                    writer
+                        .write_event(Event::End(BytesEnd::new("certificate")))
                         .map_err(|e| e.to_string())?;
                 }
             }
             if let Some(ref database) = smartcard.database {
                 let db_elem = BytesStart::new("database");
                 writer.write_event(Event::Start(db_elem)).map_err(|e| e.to_string())?;
-                writer.write_event(Event::Text(BytesText::new(database)))
+                writer
+                    .write_event(Event::Text(BytesText::new(database)))
                     .map_err(|e| e.to_string())?;
-                writer.write_event(Event::End(BytesEnd::new("database")))
+                writer
+                    .write_event(Event::End(BytesEnd::new("database")))
                     .map_err(|e| e.to_string())?;
             }
         }
@@ -83,7 +87,7 @@ pub fn write_smartcards<W: std::io::Write>(
 /// 写入 NVRAM 设备配置
 pub fn write_nvram<W: std::io::Write>(
     writer: &mut Writer<W>,
-    nvram: &NVRAMConfig,
+    nvram: &DeviceNVRAMConfig,
 ) -> Result<(), String> {
     let mut nvram_elem = BytesStart::new("nvram");
     if let Some(ref template) = nvram.template {
@@ -91,8 +95,7 @@ pub fn write_nvram<W: std::io::Write>(
     }
     if let Some(ref source) = nvram.nvram_source {
         writer.write_event(Event::Start(nvram_elem)).map_err(|e| e.to_string())?;
-        writer.write_event(Event::Text(BytesText::new(source)))
-            .map_err(|e| e.to_string())?;
+        writer.write_event(Event::Text(BytesText::new(source))).map_err(|e| e.to_string())?;
         writer.write_event(Event::End(BytesEnd::new("nvram"))).map_err(|e| e.to_string())?;
     } else {
         writer.write_event(Event::Empty(nvram_elem)).map_err(|e| e.to_string())?;

@@ -31,6 +31,8 @@ pub struct ControllerConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub serial: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub hotplug: Option<ControllerHotplug>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<AddressConfig>,
 }
 
@@ -84,6 +86,18 @@ pub struct ControllerModel {
 pub struct ControllerTarget {
     #[serde(rename = "@type", skip_serializing_if = "Option::is_none")]
     pub target_type: Option<String>,
+    #[serde(rename = "@chassisNr", skip_serializing_if = "Option::is_none")]
+    pub chassis_nr: Option<u32>,
+    #[serde(rename = "@chassis", skip_serializing_if = "Option::is_none")]
+    pub chassis: Option<u32>,
+    #[serde(rename = "@port", skip_serializing_if = "Option::is_none")]
+    pub port: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ControllerHotplug {
+    #[serde(rename = "@enabled")]
+    pub enabled: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

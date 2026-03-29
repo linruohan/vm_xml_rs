@@ -122,6 +122,13 @@ pub fn write_memory_devices<W: std::io::Write>(
             if let Some(ref nodemask) = source.nodemask {
                 write_element(writer, "nodemask", nodemask)?;
             }
+            if let Some(ref alignsize) = source.alignsize {
+                write_size_element(writer, "alignsize", alignsize)?;
+            }
+            if source.pmem.is_some() {
+                let pmem_elem = BytesStart::new("pmem");
+                writer.write_event(Event::Empty(pmem_elem)).map_err(|e| e.to_string())?;
+            }
 
             writer.write_event(Event::End(BytesEnd::new("source"))).map_err(|e| e.to_string())?;
         }
@@ -145,6 +152,23 @@ pub fn write_memory_devices<W: std::io::Write>(
                     label_elem.push_attribute(("unit", unit.as_str()));
                 }
                 writer.write_event(Event::Empty(label_elem)).map_err(|e| e.to_string())?;
+            }
+            if target.readonly.is_some() {
+                let readonly_elem = BytesStart::new("readonly");
+                writer.write_event(Event::Empty(readonly_elem)).map_err(|e| e.to_string())?;
+            }
+            if let Some(ref requested) = target.requested {
+                write_size_element(writer, "requested", requested)?;
+            }
+            if let Some(ref current) = target.current {
+                write_size_element(writer, "current", current)?;
+            }
+            if let Some(ref address) = target.address {
+                let mut addr_elem = BytesStart::new("address");
+                if let Some(ref base) = address.base {
+                    addr_elem.push_attribute(("base", base.as_str()));
+                }
+                writer.write_event(Event::Empty(addr_elem)).map_err(|e| e.to_string())?;
             }
 
             writer.write_event(Event::End(BytesEnd::new("target"))).map_err(|e| e.to_string())?;
@@ -278,8 +302,44 @@ pub fn write_audio<W: std::io::Write>(
     if let Some(ref id) = audio.id {
         audio_elem.push_attribute(("id", id.as_str()));
     }
+    if let Some(ref model) = audio.model {
+        audio_elem.push_attribute(("model", model.as_str()));
+    }
     writer.write_event(Event::Start(audio_elem)).map_err(|e| e.to_string())?;
 
+    // Source 配置
+    if let Some(ref source) = audio.source {
+        let mut source_elem = BytesStart::new("source");
+        if let Some(ref mode) = source.mode {
+            source_elem.push_attribute(("mode", mode.as_str()));
+        }
+        writer.write_event(Event::Start(source_elem)).map_err(|e| e.to_string())?;
+
+        if let Some(ref backend) = source.backend {
+            let mut backend_elem = BytesStart::new("backend");
+            backend_elem.push_attribute(("type", backend.backend_type.as_str()));
+            if let Some(ref server) = backend.server {
+                backend_elem.push_attribute(("server", server.as_str()));
+            }
+            if let Some(ref name) = backend.name {
+                backend_elem.push_attribute(("name", name.as_str()));
+            }
+            if let Some(ref device) = backend.device {
+                backend_elem.push_attribute(("device", device.as_str()));
+            }
+            if let Some(ref format) = backend.format {
+                backend_elem.push_attribute(("format", format.as_str()));
+            }
+            if let Some(ref global) = backend.global {
+                backend_elem.push_attribute(("global", global.as_str()));
+            }
+            writer.write_event(Event::Empty(backend_elem)).map_err(|e| e.to_string())?;
+        }
+
+        writer.write_event(Event::End(BytesEnd::new("source"))).map_err(|e| e.to_string())?;
+    }
+
+    // Input 配置
     if let Some(ref input) = audio.input {
         let mut input_elem = BytesStart::new("input");
         input_elem.push_attribute(("type", input.stream_type.as_str()));
@@ -301,6 +361,7 @@ pub fn write_audio<W: std::io::Write>(
         writer.write_event(Event::Empty(input_elem)).map_err(|e| e.to_string())?;
     }
 
+    // Output 配置
     if let Some(ref output) = audio.output {
         let mut output_elem = BytesStart::new("output");
         output_elem.push_attribute(("type", output.stream_type.as_str()));
@@ -320,6 +381,11 @@ pub fn write_audio<W: std::io::Write>(
             output_elem.push_attribute(("global", global.as_str()));
         }
         writer.write_event(Event::Empty(output_elem)).map_err(|e| e.to_string())?;
+    }
+
+    // Address 配置
+    if let Some(ref address) = audio.address {
+        write_address(writer, address)?;
     }
 
     writer.write_event(Event::End(BytesEnd::new("audio"))).map_err(|e| e.to_string())?;
