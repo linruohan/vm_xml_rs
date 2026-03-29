@@ -1,6 +1,6 @@
 [package]
 name = "vm_xml_rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "VM XML Configuration Generator based on egui"
 authors = ["linruohan"]
