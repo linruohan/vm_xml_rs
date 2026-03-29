@@ -3,13 +3,13 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::network::InterfaceConfig;
+use crate::{error::AppError, model::network::InterfaceConfig};
 
 /// 写入 Network 接口设备
 pub fn write_interfaces<W: std::io::Write>(
     writer: &mut Writer<W>,
     iface_list: &[InterfaceConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for iface in iface_list {
         let mut iface_elem = BytesStart::new("interface");
         iface_elem.push_attribute(("type", iface.interface_type.as_str()));

@@ -3,16 +3,19 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::devices::{
-    AudioConfig, CryptoConfig, HubConfig, IommuConfig, MemoryDeviceConfig, PanicConfig,
-    PstoreConfig, ShmemConfig, VsockConfig,
+use crate::{
+    error::AppError,
+    model::devices::{
+        AudioConfig, CryptoConfig, HubConfig, IommuConfig, MemoryDeviceConfig, PanicConfig,
+        PstoreConfig, ShmemConfig, VsockConfig,
+    },
 };
 
 /// 写入 Hub 设备
 pub fn write_hubs<W: std::io::Write>(
     writer: &mut Writer<W>,
     hub_list: &[HubConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for hub in hub_list {
         let mut hub_elem = BytesStart::new("hub");
         hub_elem.push_attribute(("type", hub.hub_type.as_str()));

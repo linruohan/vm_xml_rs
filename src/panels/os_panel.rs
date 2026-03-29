@@ -211,21 +211,17 @@ impl OSPanel {
                 }
 
                 if let Some(ref mut boot_list) = os.boot {
+                    let mut move_up: Option<usize> = None;
+                    let mut move_down: Option<usize> = None;
+
                     ui.horizontal(|ui| {
                         if add_button(ui, "➕ 添加引导设备", colors) {
                             boot_list.push(BootConfig { dev: "hd".to_string() });
                         }
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                            if boot_list.len() > 1 && ui.button("⬇️ 下移").clicked() {
-                                // TODO: 实现下移功能
-                            }
-                            if boot_list.len() > 1 && ui.button("⬆️ 上移").clicked() {
-                                // TODO: 实现上移功能
-                            }
-                        });
                     });
 
                     let mut to_remove = None;
+                    let boot_len = boot_list.len();
                     for (i, boot) in boot_list.iter_mut().enumerate() {
                         ui.push_id(i, |ui| {
                             ui.horizontal(|ui| {
@@ -239,6 +235,15 @@ impl OSPanel {
                                         ui.selectable_value(dev, "fd".to_string(), "软驱");
                                         ui.selectable_value(dev, "network".to_string(), "网络");
                                     });
+                                if i > 0 && ui.small_button("⬆️").on_hover_text("上移").clicked()
+                                {
+                                    move_up = Some(i);
+                                }
+                                if i + 1 < boot_len
+                                    && ui.small_button("⬇️").on_hover_text("下移").clicked()
+                                {
+                                    move_down = Some(i);
+                                }
                                 if delete_button(ui, None) {
                                     to_remove = Some(i);
                                 }
@@ -246,6 +251,12 @@ impl OSPanel {
                         });
                     }
 
+                    if let Some(i) = move_up {
+                        boot_list.swap(i, i - 1);
+                    }
+                    if let Some(i) = move_down {
+                        boot_list.swap(i, i + 1);
+                    }
                     if let Some(idx) = to_remove {
                         boot_list.remove(idx);
                     }
@@ -397,7 +408,7 @@ impl OSPanel {
                     ui.add_space(5.0);
                     grid(ui, "kernel_grid", 2, |ui| {
                         ui.label("内核路径:");
-                        let kernel = os.kernel.as_mut().unwrap();
+                        let kernel = os.kernel.get_or_insert_with(String::new);
                         ui.text_edit_singleline(kernel);
                         ui.end_row();
 

@@ -6,13 +6,13 @@ use quick_xml::{
 };
 
 use super::general::write_element;
-use crate::model::VMConfig;
+use crate::{error::AppError, model::VMConfig};
 
 /// 写入 CPU 调优配置（cputune 部分）
 pub fn write_cputune<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     if let Some(ref cputune) = config.cpu_tuning {
         let cputune_elem = BytesStart::new("cputune");
         writer.write_event(Event::Start(cputune_elem)).map_err(|e| e.to_string())?;
@@ -179,10 +179,10 @@ pub fn write_cputune<W: std::io::Write>(
 pub fn write_memtune<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     if let Some(ref memtune) = config.memory_tuning {
         let memtune_elem = BytesStart::new("memtune");
-        writer.write_event(Event::Start(memtune_elem)).map_err(|e| e.to_string())?;
+        writer.write_event(Event::Start(memtune_elem))?;
 
         if let Some(hard_limit) = memtune.hard_limit {
             write_element(writer, "hard_limit", &hard_limit.to_string())?;
@@ -200,7 +200,7 @@ pub fn write_memtune<W: std::io::Write>(
             write_element(writer, "min_guarantee", &guarantee.to_string())?;
         }
 
-        writer.write_event(Event::End(BytesEnd::new("memtune"))).map_err(|e| e.to_string())?;
+        writer.write_event(Event::End(BytesEnd::new("memtune")))?;
     }
 
     Ok(())
@@ -210,10 +210,10 @@ pub fn write_memtune<W: std::io::Write>(
 pub fn write_blkiotune<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     if let Some(ref blkiotune) = config.blockio_tuning {
         let blkiotune_elem = BytesStart::new("blkiotune");
-        writer.write_event(Event::Start(blkiotune_elem)).map_err(|e| e.to_string())?;
+        writer.write_event(Event::Start(blkiotune_elem))?;
 
         if let Some(weight) = blkiotune.weight {
             write_element(writer, "weight", &weight.to_string())?;
@@ -222,14 +222,12 @@ pub fn write_blkiotune<W: std::io::Write>(
         if let Some(ref device_weight_list) = blkiotune.device_weight {
             for device_weight in device_weight_list {
                 let device_elem = BytesStart::new("device");
-                writer.write_event(Event::Start(device_elem)).map_err(|e| e.to_string())?;
+                writer.write_event(Event::Start(device_elem))?;
 
                 write_element(writer, "path", &device_weight.dev)?;
                 write_element(writer, "weight", &device_weight.weight.to_string())?;
 
-                writer
-                    .write_event(Event::End(BytesEnd::new("device")))
-                    .map_err(|e| e.to_string())?;
+                writer.write_event(Event::End(BytesEnd::new("device")))?;
             }
         }
 
@@ -248,7 +246,7 @@ pub fn write_blkiotune<W: std::io::Write>(
             }
         }
 
-        writer.write_event(Event::End(BytesEnd::new("blkiotune"))).map_err(|e| e.to_string())?;
+        writer.write_event(Event::End(BytesEnd::new("blkiotune")))?;
     }
 
     Ok(())
@@ -258,9 +256,9 @@ pub fn write_blkiotune<W: std::io::Write>(
 pub fn write_resource<W: std::io::Write>(
     writer: &mut Writer<W>,
     resource: &crate::model::ResourcePartitioningConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let resource_elem = BytesStart::new("resource");
-    writer.write_event(Event::Start(resource_elem)).map_err(|e| e.to_string())?;
+    writer.write_event(Event::Start(resource_elem))?;
 
     if let Some(ref cpuset) = resource.cpuset {
         write_element(writer, "partition", cpuset)?;
@@ -269,7 +267,7 @@ pub fn write_resource<W: std::io::Write>(
         write_element(writer, "memnode", memnode)?;
     }
 
-    writer.write_event(Event::End(BytesEnd::new("resource"))).map_err(|e| e.to_string())?;
+    writer.write_event(Event::End(BytesEnd::new("resource")))?;
     Ok(())
 }
 
@@ -277,9 +275,9 @@ pub fn write_resource<W: std::io::Write>(
 pub fn write_numa<W: std::io::Write>(
     writer: &mut Writer<W>,
     numa: &crate::model::NUMAConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let numa_elem = BytesStart::new("numa");
-    writer.write_event(Event::Start(numa_elem)).map_err(|e| e.to_string())?;
+    writer.write_event(Event::Start(numa_elem))?;
 
     if let Some(ref cell_list) = numa.cell {
         for cell in cell_list {
@@ -290,22 +288,22 @@ pub fn write_numa<W: std::io::Write>(
             if let Some(ref unit) = cell.unit {
                 cell_elem.push_attribute(("unit", unit.as_str()));
             }
-            writer.write_event(Event::Start(cell_elem)).map_err(|e| e.to_string())?;
+            writer.write_event(Event::Start(cell_elem))?;
 
             if let Some(ref memnode_list) = cell.memnode {
                 for memnode in memnode_list {
                     let mut memnode_elem = BytesStart::new("memnode");
                     memnode_elem.push_attribute(("cellid", memnode.cellid.to_string().as_str()));
                     memnode_elem.push_attribute(("mode", memnode.mode.as_str()));
-                    writer.write_event(Event::Empty(memnode_elem)).map_err(|e| e.to_string())?;
+                    writer.write_event(Event::Empty(memnode_elem))?;
                 }
             }
 
-            writer.write_event(Event::End(BytesEnd::new("cell"))).map_err(|e| e.to_string())?;
+            writer.write_event(Event::End(BytesEnd::new("cell")))?;
         }
     }
 
-    writer.write_event(Event::End(BytesEnd::new("numa"))).map_err(|e| e.to_string())?;
+    writer.write_event(Event::End(BytesEnd::new("numa")))?;
     Ok(())
 }
 
@@ -336,13 +334,13 @@ pub fn write_power_management<W: std::io::Write>(
 pub fn write_disk_throttle_group<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     if let Some(ref throttlegroup) = config.disk_throttle_group {
         let tg_elem = BytesStart::new("throttlegroups");
-        writer.write_event(Event::Start(tg_elem)).map_err(|e| e.to_string())?;
+        writer.write_event(Event::Start(tg_elem))?;
 
         let tgroup_elem = BytesStart::new("throttlegroup");
-        writer.write_event(Event::Start(tgroup_elem)).map_err(|e| e.to_string())?;
+        writer.write_event(Event::Start(tgroup_elem))?;
 
         write_element(writer, "group_name", &throttlegroup.name)?;
 
@@ -361,13 +359,9 @@ pub fn write_disk_throttle_group<W: std::io::Write>(
             }
         }
 
-        writer
-            .write_event(Event::End(BytesEnd::new("throttlegroup")))
-            .map_err(|e| e.to_string())?;
+        writer.write_event(Event::End(BytesEnd::new("throttlegroup")))?;
 
-        writer
-            .write_event(Event::End(BytesEnd::new("throttlegroups")))
-            .map_err(|e| e.to_string())?;
+        writer.write_event(Event::End(BytesEnd::new("throttlegroups")))?;
     }
 
     Ok(())

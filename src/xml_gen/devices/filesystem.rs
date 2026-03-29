@@ -3,13 +3,13 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::devices::FilesystemConfig;
+use crate::{error::AppError, model::devices::FilesystemConfig};
 
 /// 写入 Filesystem 设备
 pub fn write_filesystems<W: std::io::Write>(
     writer: &mut Writer<W>,
     filesystem_list: &[FilesystemConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for filesystem in filesystem_list {
         let mut fs_elem = BytesStart::new("filesystem");
         fs_elem.push_attribute(("type", filesystem.fs_type.as_str()));

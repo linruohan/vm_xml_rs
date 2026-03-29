@@ -3,13 +3,13 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::devices::ControllerConfig;
+use crate::{error::AppError, model::devices::ControllerConfig};
 
 /// 写入 Controller 设备
 pub fn write_controllers<W: std::io::Write>(
     writer: &mut Writer<W>,
     controller_list: &[ControllerConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for controller in controller_list {
         let mut controller_elem = BytesStart::new("controller");
         controller_elem.push_attribute(("type", controller.controller_type.as_str()));

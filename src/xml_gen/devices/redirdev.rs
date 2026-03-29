@@ -3,13 +3,16 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::devices::{RedirdevConfig, RedirfilterConfig};
+use crate::{
+    error::AppError,
+    model::devices::{RedirdevConfig, RedirfilterConfig},
+};
 
 /// 写入 USB 重定向设备配置
 pub fn write_redirdevs<W: std::io::Write>(
     writer: &mut Writer<W>,
     redirdev_list: &[RedirdevConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for redirdev in redirdev_list {
         let mut redirdev_elem = BytesStart::new("redirdev");
         redirdev_elem.push_attribute(("bus", redirdev.bus.as_str()));

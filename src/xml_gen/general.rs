@@ -3,13 +3,13 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::VMConfig;
+use crate::{error::AppError, model::VMConfig};
 
 /// 写入基础配置（general 部分）
 pub fn write_general<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     write_element(writer, "name", &config.general.name)?;
 
     if let Some(ref uuid) = config.general.uuid {
@@ -55,65 +55,75 @@ pub fn write_general<W: std::io::Write>(
     }
 
     {
-        let mut mem_elem = BytesStart::new("memory");
+        // 使用 write_element_with_attrs 简化代码
+        let mut attrs = Vec::new();
         if let Some(ref unit) = config.general.memory.unit {
-            mem_elem.push_attribute(("unit", unit.as_str()));
+            attrs.push(("unit", unit.as_str()));
         }
         if let Some(ref dump_core) = config.general.memory.dump_core {
-            mem_elem.push_attribute(("dumpCore", dump_core.as_str()));
+            attrs.push(("dumpCore", dump_core.as_str()));
         }
-        writer.write_event(Event::Start(mem_elem)).map_err(|e| e.to_string())?;
-        writer
-            .write_event(Event::Text(BytesText::new(&config.general.memory.value.to_string())))
-            .map_err(|e| e.to_string())?;
-        writer.write_event(Event::End(BytesEnd::new("memory"))).map_err(|e| e.to_string())?;
+        write_element_with_attrs(
+            writer,
+            "memory",
+            &config.general.memory.value.to_string(),
+            &attrs,
+        )?;
     }
 
     if let Some(ref max_memory) = config.general.max_memory {
-        let mut max_mem_elem = BytesStart::new("maxMemory");
+        let mut attrs = Vec::new();
         if let Some(ref unit) = max_memory.unit {
-            max_mem_elem.push_attribute(("unit", unit.as_str()));
+            attrs.push(("unit", unit.as_str()));
         }
         if let Some(ref slots) = max_memory.slots {
-            max_mem_elem.push_attribute(("slots", slots.to_string().as_str()));
+            let slots_str = slots.to_string();
+            attrs.push(("slots", slots_str.as_str()));
+            write_element_with_attrs(writer, "maxMemory", &max_memory.value.to_string(), &attrs)?;
+        } else {
+            write_element_with_attrs(writer, "maxMemory", &max_memory.value.to_string(), &attrs)?;
         }
-        writer.write_event(Event::Start(max_mem_elem)).map_err(|e| e.to_string())?;
-        writer
-            .write_event(Event::Text(BytesText::new(&max_memory.value.to_string())))
-            .map_err(|e| e.to_string())?;
-        writer.write_event(Event::End(BytesEnd::new("maxMemory"))).map_err(|e| e.to_string())?;
     }
 
     if let Some(ref current_memory) = config.general.current_memory {
-        let mut current_mem_elem = BytesStart::new("currentMemory");
+        let mut attrs = Vec::new();
         if let Some(ref unit) = current_memory.unit {
-            current_mem_elem.push_attribute(("unit", unit.as_str()));
+            attrs.push(("unit", unit.as_str()));
         }
-        writer.write_event(Event::Start(current_mem_elem)).map_err(|e| e.to_string())?;
-        writer
-            .write_event(Event::Text(BytesText::new(&current_memory.value.to_string())))
-            .map_err(|e| e.to_string())?;
-        writer
-            .write_event(Event::End(BytesEnd::new("currentMemory")))
-            .map_err(|e| e.to_string())?;
+        write_element_with_attrs(
+            writer,
+            "currentMemory",
+            &current_memory.value.to_string(),
+            &attrs,
+        )?;
     }
 
     {
-        let mut vcpu_elem = BytesStart::new("vcpu");
+        // 使用 write_element_with_attrs 简化代码
+        let mut attrs = Vec::new();
         if let Some(ref placement) = config.general.vcpu.placement {
-            vcpu_elem.push_attribute(("placement", placement.as_str()));
+            attrs.push(("placement", placement.as_str()));
         }
         if let Some(ref cpuset) = config.general.vcpu.cpuset {
-            vcpu_elem.push_attribute(("cpuset", cpuset.as_str()));
+            attrs.push(("cpuset", cpuset.as_str()));
         }
         if let Some(ref current) = config.general.vcpu.current {
-            vcpu_elem.push_attribute(("current", current.to_string().as_str()));
+            let current_str = current.to_string();
+            attrs.push(("current", current_str.as_str()));
+            write_element_with_attrs(
+                writer,
+                "vcpu",
+                &config.general.vcpu.count.to_string(),
+                &attrs,
+            )?;
+        } else {
+            write_element_with_attrs(
+                writer,
+                "vcpu",
+                &config.general.vcpu.count.to_string(),
+                &attrs,
+            )?;
         }
-        writer.write_event(Event::Start(vcpu_elem)).map_err(|e| e.to_string())?;
-        writer
-            .write_event(Event::Text(BytesText::new(&config.general.vcpu.count.to_string())))
-            .map_err(|e| e.to_string())?;
-        writer.write_event(Event::End(BytesEnd::new("vcpu"))).map_err(|e| e.to_string())?;
     }
 
     if let Some(ref vcpus) = config.general.vcpus {
@@ -121,14 +131,18 @@ pub fn write_general<W: std::io::Write>(
         writer.write_event(Event::Start(vcpus_elem)).map_err(|e| e.to_string())?;
 
         for vcpu in vcpus {
-            let mut vcpu_elem = BytesStart::new("vcpu");
-            vcpu_elem.push_attribute(("id", vcpu.id.to_string().as_str()));
-            vcpu_elem.push_attribute(("enabled", vcpu.enabled.as_str()));
-            vcpu_elem.push_attribute(("hotpluggable", vcpu.hotpluggable.as_str()));
-            if let Some(ref order) = vcpu.order {
-                vcpu_elem.push_attribute(("order", order.to_string().as_str()));
+            // 使用 write_empty_element 简化代码
+            let id_str = vcpu.id.to_string();
+            let order_str_opt = vcpu.order.map(|o| o.to_string());
+            let mut attrs = vec![
+                ("id", id_str.as_str()),
+                ("enabled", vcpu.enabled.as_str()),
+                ("hotpluggable", vcpu.hotpluggable.as_str()),
+            ];
+            if let Some(ref order_str) = order_str_opt {
+                attrs.push(("order", order_str.as_str()));
             }
-            writer.write_event(Event::Empty(vcpu_elem)).map_err(|e| e.to_string())?;
+            write_empty_element(writer, "vcpu", &attrs)?;
         }
 
         writer.write_event(Event::End(BytesEnd::new("vcpus"))).map_err(|e| e.to_string())?;
@@ -150,9 +164,86 @@ pub fn write_element<W: std::io::Write>(
     writer: &mut Writer<W>,
     name: &str,
     value: &str,
-) -> Result<(), String> {
-    writer.write_event(Event::Start(BytesStart::new(name))).map_err(|e| e.to_string())?;
-    writer.write_event(Event::Text(BytesText::new(value))).map_err(|e| e.to_string())?;
-    writer.write_event(Event::End(BytesEnd::new(name))).map_err(|e| e.to_string())?;
+) -> Result<(), AppError> {
+    writer
+        .write_event(Event::Start(BytesStart::new(name)))
+        .map_err(|e| AppError::XmlGeneration(format!("写入元素 {} 失败：{}", name, e)))?;
+    writer
+        .write_event(Event::Text(BytesText::new(value)))
+        .map_err(|e| AppError::XmlGeneration(format!("写入文本内容失败：{}", e)))?;
+    writer
+        .write_event(Event::End(BytesEnd::new(name)))
+        .map_err(|e| AppError::XmlGeneration(format!("关闭元素 {} 失败：{}", name, e)))?;
+    Ok(())
+}
+
+/// 写入带属性的 XML 元素
+///
+/// # 参数
+/// * `writer` - XML 写入器
+/// * `name` - 元素名称
+/// * `value` - 元素文本内容
+/// * `attributes` - 属性键值对列表
+///
+/// # 示例
+/// ```ignore
+/// write_element_with_attrs(
+///     writer,
+///     "memory",
+///     "1024",
+///     &[("unit", "MiB"), ("dumpCore", "on")]
+/// )?;
+/// // 输出：<memory unit="MiB" dumpCore="on">1024</memory>
+/// ```
+pub fn write_element_with_attrs<W: std::io::Write>(
+    writer: &mut Writer<W>,
+    name: &str,
+    value: &str,
+    attributes: &[(&str, &str)],
+) -> Result<(), AppError> {
+    let mut elem = BytesStart::new(name);
+    for (key, val) in attributes {
+        elem.push_attribute((*key, *val));
+    }
+    writer
+        .write_event(Event::Start(elem))
+        .map_err(|e| AppError::XmlGeneration(format!("写入带属性元素 {} 失败：{}", name, e)))?;
+    writer
+        .write_event(Event::Text(BytesText::new(value)))
+        .map_err(|e| AppError::XmlGeneration(format!("写入文本内容失败：{}", e)))?;
+    writer
+        .write_event(Event::End(BytesEnd::new(name)))
+        .map_err(|e| AppError::XmlGeneration(format!("关闭元素 {} 失败：{}", name, e)))?;
+    Ok(())
+}
+
+/// 写入空元素（自闭合标签），可带属性
+///
+/// # 参数
+/// * `writer` - XML 写入器
+/// * `name` - 元素名称
+/// * `attributes` - 属性键值对列表
+///
+/// # 示例
+/// ```ignore
+/// write_empty_element(
+///     writer,
+///     "vcpu",
+///     &[("id", "0"), ("enabled", "yes")]
+/// )?;
+/// // 输出：<vcpu id="0" enabled="yes"/>
+/// ```
+pub fn write_empty_element<W: std::io::Write>(
+    writer: &mut Writer<W>,
+    name: &str,
+    attributes: &[(&str, &str)],
+) -> Result<(), AppError> {
+    let mut elem = BytesStart::new(name);
+    for (key, val) in attributes {
+        elem.push_attribute((*key, *val));
+    }
+    writer
+        .write_event(Event::Empty(elem))
+        .map_err(|e| AppError::XmlGeneration(format!("写入空元素 {} 失败：{}", name, e)))?;
     Ok(())
 }

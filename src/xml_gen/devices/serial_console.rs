@@ -3,13 +3,16 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::devices::{ConsoleConfig, ParallelConfig, SerialConfig};
+use crate::{
+    error::AppError,
+    model::devices::{ConsoleConfig, ParallelConfig, SerialConfig},
+};
 
 /// 写入 Serial 串口设备
 pub fn write_serials<W: std::io::Write>(
     writer: &mut Writer<W>,
     serial_list: &[SerialConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for serial in serial_list {
         let mut serial_elem = BytesStart::new("serial");
         serial_elem.push_attribute(("type", serial.serial_type.as_str()));

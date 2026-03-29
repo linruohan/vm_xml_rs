@@ -4,13 +4,16 @@ use quick_xml::{
 };
 
 use super::super::general::write_element;
-use crate::model::{devices::DiskConfig, disk::MetadataCacheConfig};
+use crate::{
+    error::AppError,
+    model::{devices::DiskConfig, disk::MetadataCacheConfig},
+};
 
 /// 写入 Disk 设备
 pub fn write_disks<W: std::io::Write>(
     writer: &mut Writer<W>,
     disk_list: &[DiskConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for disk in disk_list {
         let mut disk_elem = BytesStart::new("disk");
         disk_elem.push_attribute(("type", disk.disk_type.as_str()));

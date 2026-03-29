@@ -3,13 +3,13 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::devices::LeaseConfig;
+use crate::{error::AppError, model::devices::LeaseConfig};
 
 /// 写入租约配置
 pub fn write_lease<W: std::io::Write>(
     writer: &mut Writer<W>,
     lease: &LeaseConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let lease_elem = BytesStart::new("lease");
     writer.write_event(Event::Start(lease_elem)).map_err(|e| e.to_string())?;
 

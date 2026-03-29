@@ -3,26 +3,26 @@ use quick_xml::{
     Writer,
 };
 
-use crate::{model::VMConfig, xml_gen::general::write_element};
+use crate::{error::AppError, model::VMConfig, xml_gen::general::write_element};
 
 /// 写入电源管理配置
 pub fn write_power_management<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     if let Some(ref pm) = config.power_management {
         let pm_elem = BytesStart::new("pm");
-        writer.write_event(Event::Start(pm_elem)).map_err(|e| e.to_string())?;
+        writer.write_event(Event::Start(pm_elem))?;
 
         let mut std_elem = BytesStart::new("suspend-to-disk");
         std_elem.push_attribute(("enabled", if pm.suspend_to_disk { "yes" } else { "no" }));
-        writer.write_event(Event::Empty(std_elem)).map_err(|e| e.to_string())?;
+        writer.write_event(Event::Empty(std_elem))?;
 
         let mut stm_elem = BytesStart::new("suspend-to-mem");
         stm_elem.push_attribute(("enabled", if pm.suspend_to_ram { "yes" } else { "no" }));
-        writer.write_event(Event::Empty(stm_elem)).map_err(|e| e.to_string())?;
+        writer.write_event(Event::Empty(stm_elem))?;
 
-        writer.write_event(Event::End(BytesEnd::new("pm"))).map_err(|e| e.to_string())?;
+        writer.write_event(Event::End(BytesEnd::new("pm")))?;
     }
 
     Ok(())
@@ -32,7 +32,7 @@ pub fn write_power_management<W: std::io::Write>(
 pub fn write_disk_throttle_group<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     if let Some(ref throttlegroup) = config.disk_throttle_group {
         let tg_elem = BytesStart::new("throttlegroups");
         writer.write_event(Event::Start(tg_elem)).map_err(|e| e.to_string())?;

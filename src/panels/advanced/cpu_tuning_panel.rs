@@ -32,47 +32,47 @@ impl CPUTuningPanel {
                 grid(ui, "cpu_bw_grid", 2, |ui| {
                     ui.label("Shares:");
                     let shares = tuning.shares.get_or_insert(0);
-                    ui.add(egui::Slider::new(shares, 0..=1000000).text("shares"));
+                    ui.add(egui::Slider::new(shares, 0..=1_000_000).text("shares"));
                     ui.end_row();
 
                     ui.label("Period:");
                     let period = tuning.period.get_or_insert(0);
-                    ui.add(egui::Slider::new(period, 0..=1000000000).text("ns"));
+                    ui.add(egui::Slider::new(period, 0..=1_000_000_000).text("ns"));
                     ui.end_row();
 
                     ui.label("Quota:");
                     let quota = tuning.quota.get_or_insert(-1);
-                    ui.add(egui::Slider::new(quota, -1..=1000000000).text("ns"));
+                    ui.add(egui::Slider::new(quota, -1..=1_000_000_000).text("ns"));
                     ui.end_row();
 
                     ui.label("全局 Period:");
                     let global_period = tuning.global_period.get_or_insert(0);
-                    ui.add(egui::Slider::new(global_period, 0..=1000000000).text("ns"));
+                    ui.add(egui::Slider::new(global_period, 0..=1_000_000_000).text("ns"));
                     ui.end_row();
 
                     ui.label("全局 Quota:");
                     let global_quota = tuning.global_quota.get_or_insert(-1);
-                    ui.add(egui::Slider::new(global_quota, -1..=1000000000).text("ns"));
+                    ui.add(egui::Slider::new(global_quota, -1..=1_000_000_000).text("ns"));
                     ui.end_row();
 
                     ui.label("模拟器 Period:");
                     let emulator_period = tuning.emulator_period.get_or_insert(0);
-                    ui.add(egui::Slider::new(emulator_period, 0..=1000000000).text("ns"));
+                    ui.add(egui::Slider::new(emulator_period, 0..=1_000_000_000).text("ns"));
                     ui.end_row();
 
                     ui.label("模拟器 Quota:");
                     let emulator_quota = tuning.emulator_quota.get_or_insert(-1);
-                    ui.add(egui::Slider::new(emulator_quota, -1..=1000000000).text("ns"));
+                    ui.add(egui::Slider::new(emulator_quota, -1..=1_000_000_000).text("ns"));
                     ui.end_row();
 
                     ui.label("IO 线程 Period:");
                     let iothread_period = tuning.iothread_period.get_or_insert(0);
-                    ui.add(egui::Slider::new(iothread_period, 0..=1000000000).text("ns"));
+                    ui.add(egui::Slider::new(iothread_period, 0..=1_000_000_000).text("ns"));
                     ui.end_row();
 
                     ui.label("IO 线程 Quota:");
                     let iothread_quota = tuning.iothread_quota.get_or_insert(-1);
-                    ui.add(egui::Slider::new(iothread_quota, -1..=1000000000).text("ns"));
+                    ui.add(egui::Slider::new(iothread_quota, -1..=1_000_000_000).text("ns"));
                     ui.end_row();
                 });
 

@@ -3,13 +3,13 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::devices::HostdevConfig;
+use crate::{error::AppError, model::devices::HostdevConfig};
 
 /// 写入主机设备直通配置
 pub fn write_hostdevs<W: std::io::Write>(
     writer: &mut Writer<W>,
     hostdev_list: &[HostdevConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for hostdev in hostdev_list {
         let mut hostdev_elem = BytesStart::new("hostdev");
         hostdev_elem.push_attribute(("mode", hostdev.mode.as_str()));

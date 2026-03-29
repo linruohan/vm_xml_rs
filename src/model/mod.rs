@@ -3,6 +3,7 @@ pub mod devices;
 pub mod general;
 pub mod memory;
 pub mod os;
+pub mod validation;
 pub mod vm_config;
 
 pub mod blockio_tuning;

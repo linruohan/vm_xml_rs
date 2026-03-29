@@ -4,13 +4,13 @@ use quick_xml::{
 };
 
 use super::general::write_element;
-use crate::model::VMConfig;
+use crate::{error::AppError, model::VMConfig};
 
 /// 写入事件处理配置
 pub fn write_events<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     if let Some(ref events) = config.events {
         if let Some(ref on_poweroff) = events.on_poweroff {
             write_element(writer, "on_poweroff", on_poweroff)?;

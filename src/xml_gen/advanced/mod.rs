@@ -1,6 +1,6 @@
 use quick_xml::Writer;
 
-use crate::model::VMConfig;
+use crate::{error::AppError, model::VMConfig};
 
 pub mod power_mgmt;
 pub mod sysinfo;
@@ -9,7 +9,7 @@ pub mod sysinfo;
 pub fn write_advanced<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     // Sysinfo 配置
     sysinfo::write_sysinfo(writer, config)?;
 
@@ -67,22 +67,21 @@ fn write_fibre_channel_vmid<W: std::io::Write>(
 fn write_security_label<W: std::io::Write>(
     writer: &mut Writer<W>,
     security_label: &crate::model::SecurityLabelConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let mut label_elem = quick_xml::events::BytesStart::new("seclabel");
     label_elem.push_attribute(("type", security_label.label_type.as_str()));
     label_elem.push_attribute(("model", security_label.model.as_str()));
     if let Some(ref relabel) = security_label.relabel {
         label_elem.push_attribute(("relabel", relabel.as_str()));
     }
-    writer.write_event(quick_xml::events::Event::Start(label_elem)).map_err(|e| e.to_string())?;
+    writer.write_event(quick_xml::events::Event::Start(label_elem))?;
 
     if let Some(ref label) = security_label.label {
         crate::xml_gen::general::write_element(writer, "label", label)?;
     }
 
     writer
-        .write_event(quick_xml::events::Event::End(quick_xml::events::BytesEnd::new("seclabel")))
-        .map_err(|e| e.to_string())?;
+        .write_event(quick_xml::events::Event::End(quick_xml::events::BytesEnd::new("seclabel")))?;
     Ok(())
 }
 
@@ -90,20 +89,19 @@ fn write_security_label<W: std::io::Write>(
 fn write_key_wrap<W: std::io::Write>(
     writer: &mut Writer<W>,
     key_wrap: &crate::model::KeyWrapConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let kw_elem = quick_xml::events::BytesStart::new("keywrap");
-    writer.write_event(quick_xml::events::Event::Start(kw_elem)).map_err(|e| e.to_string())?;
+    writer.write_event(quick_xml::events::Event::Start(kw_elem))?;
 
     if let Some(ref master_key) = key_wrap.master_key {
         let mut mk_elem = quick_xml::events::BytesStart::new("masterKey");
         mk_elem.push_attribute(("type", master_key.key_type.as_str()));
         mk_elem.push_attribute(("uri", master_key.uri.as_str()));
-        writer.write_event(quick_xml::events::Event::Empty(mk_elem)).map_err(|e| e.to_string())?;
+        writer.write_event(quick_xml::events::Event::Empty(mk_elem))?;
     }
 
     writer
-        .write_event(quick_xml::events::Event::End(quick_xml::events::BytesEnd::new("keywrap")))
-        .map_err(|e| e.to_string())?;
+        .write_event(quick_xml::events::Event::End(quick_xml::events::BytesEnd::new("keywrap")))?;
     Ok(())
 }
 
@@ -111,7 +109,7 @@ fn write_key_wrap<W: std::io::Write>(
 fn write_launch_security<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     if let Some(ref launch_security) = config.launch_security {
         let ls_elem = quick_xml::events::BytesStart::new("launchSecurity");
         writer.write_event(quick_xml::events::Event::Start(ls_elem)).map_err(|e| e.to_string())?;
@@ -144,11 +142,9 @@ fn write_launch_security<W: std::io::Write>(
             crate::xml_gen::devices::input_sound_tpm::write_tpm(writer, Some(tpm))?;
         }
 
-        writer
-            .write_event(quick_xml::events::Event::End(quick_xml::events::BytesEnd::new(
-                "launchSecurity",
-            )))
-            .map_err(|e| e.to_string())?;
+        writer.write_event(quick_xml::events::Event::End(quick_xml::events::BytesEnd::new(
+            "launchSecurity",
+        )))?;
     }
     Ok(())
 }

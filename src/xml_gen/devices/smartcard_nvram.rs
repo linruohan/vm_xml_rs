@@ -3,13 +3,16 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::devices::{DeviceNVRAMConfig, SmartcardConfig};
+use crate::{
+    error::AppError,
+    model::devices::{DeviceNVRAMConfig, SmartcardConfig},
+};
 
 /// 写入智能卡设备配置
 pub fn write_smartcards<W: std::io::Write>(
     writer: &mut Writer<W>,
     smartcard_list: &[SmartcardConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for smartcard in smartcard_list {
         let mut smartcard_elem = BytesStart::new("smartcard");
         smartcard_elem.push_attribute(("mode", smartcard.mode.as_str()));

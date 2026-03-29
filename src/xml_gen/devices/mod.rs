@@ -4,7 +4,7 @@ use quick_xml::{
 };
 
 use super::general::write_element;
-use crate::model::VMConfig;
+use crate::{error::AppError, model::VMConfig};
 
 pub mod channel_watchdog_rng;
 pub mod controller;
@@ -25,9 +25,9 @@ pub mod smartcard_nvram;
 pub fn write_devices<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let devices_elem = BytesStart::new("devices");
-    writer.write_event(Event::Start(devices_elem)).map_err(|e| e.to_string())?;
+    writer.write_event(Event::Start(devices_elem))?;
 
     if let Some(ref emulator) = config.devices.emulator {
         write_element(writer, "emulator", emulator)?;

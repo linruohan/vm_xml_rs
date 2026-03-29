@@ -3,16 +3,19 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::{
-    devices::{InputConfig, SoundConfig},
-    TPMConfig,
+use crate::{
+    error::AppError,
+    model::{
+        devices::{InputConfig, SoundConfig},
+        TPMConfig,
+    },
 };
 
 /// 写入 Input 设备
 pub fn write_inputs<W: std::io::Write>(
     writer: &mut Writer<W>,
     input_list: &[InputConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for input in input_list {
         let mut input_elem = BytesStart::new("input");
         input_elem.push_attribute(("type", input.input_type.as_str()));

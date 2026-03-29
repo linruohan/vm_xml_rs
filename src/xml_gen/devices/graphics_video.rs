@@ -3,17 +3,20 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::devices::{
-    AccelerationConfig, ChannelPolicyConfig, ClipboardConfig, FileTransferConfig, GlConfig,
-    GraphicsConfig, ImageConfig, ListenConfig, MouseConfig, ResolutionConfig, StreamingConfig,
-    VideoConfig, VideoDriverConfig,
+use crate::{
+    error::AppError,
+    model::devices::{
+        AccelerationConfig, ChannelPolicyConfig, ClipboardConfig, FileTransferConfig, GlConfig,
+        GraphicsConfig, ImageConfig, ListenConfig, MouseConfig, ResolutionConfig, StreamingConfig,
+        VideoConfig, VideoDriverConfig,
+    },
 };
 
 /// 写入 Graphics 设备
 pub fn write_graphics<W: std::io::Write>(
     writer: &mut Writer<W>,
     graphics_list: &[GraphicsConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for g in graphics_list {
         let mut g_elem = BytesStart::new("graphics");
         g_elem.push_attribute(("type", g.graphics_type.as_str()));

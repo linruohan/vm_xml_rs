@@ -1,15 +1,19 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 mod app;
+mod error;
 mod model;
 mod panels;
 mod xml_gen;
+mod xml_import;
 
 use app::VMConfigApp;
 use eframe::icon_data;
+pub use error::{AppError, Result};
 
-/// 从 PNG 文件加载图标
+/// 从 PNG 文件加载图标，失败时返回空图标
 fn load_icon() -> egui::IconData {
-    icon_data::from_png_bytes(include_bytes!("../resources/mytool.png")).unwrap()
+    icon_data::from_png_bytes(include_bytes!("../resources/mytool.png"))
+        .unwrap_or_else(|_| egui::IconData::default())
 }
 
 fn main() -> eframe::Result<()> {
@@ -25,16 +29,12 @@ fn main() -> eframe::Result<()> {
     );
 
     // 将 MapleMono 添加到默认字体家族
-    fonts
-        .families
-        .get_mut(&egui::FontFamily::Proportional)
-        .unwrap()
-        .insert(0, "maple-mono".to_owned());
-    fonts
-        .families
-        .get_mut(&egui::FontFamily::Monospace)
-        .unwrap()
-        .insert(0, "maple-mono".to_owned());
+    if let Some(proportional) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
+        proportional.insert(0, "maple-mono".to_owned());
+    }
+    if let Some(monospace) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
+        monospace.insert(0, "maple-mono".to_owned());
+    }
 
     // 加载应用图标
     let icon = load_icon();

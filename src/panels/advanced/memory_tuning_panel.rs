@@ -1,4 +1,5 @@
 use crate::{
+    field_row_drag,
     model::{MemoryTuningConfig, VMConfig},
     panels::utils::*,
 };
@@ -24,29 +25,10 @@ impl MemoryTuningPanel {
             if let Some(ref mut tuning) = config.memory_tuning {
                 ui.add_space(5.0);
                 grid(ui, "memory_tuning_grid", 2, |ui| {
-                    ui.label("硬限制 (MiB):");
-                    let mut hard_limit = tuning.hard_limit.unwrap_or(0);
-                    ui.add(egui::DragValue::new(&mut hard_limit));
-                    tuning.hard_limit = if hard_limit > 0 { Some(hard_limit) } else { None };
-                    ui.end_row();
-
-                    ui.label("软限制 (MiB):");
-                    let mut soft_limit = tuning.soft_limit.unwrap_or(0);
-                    ui.add(egui::DragValue::new(&mut soft_limit));
-                    tuning.soft_limit = if soft_limit > 0 { Some(soft_limit) } else { None };
-                    ui.end_row();
-
-                    ui.label("交换硬限制 (MiB):");
-                    let mut swap_limit = tuning.swap_hard_limit.unwrap_or(0);
-                    ui.add(egui::DragValue::new(&mut swap_limit));
-                    tuning.swap_hard_limit = if swap_limit > 0 { Some(swap_limit) } else { None };
-                    ui.end_row();
-
-                    ui.label("内存保证 (MiB):");
-                    let mut guarantee = tuning.guarantee.unwrap_or(0);
-                    ui.add(egui::DragValue::new(&mut guarantee));
-                    tuning.guarantee = if guarantee > 0 { Some(guarantee) } else { None };
-                    ui.end_row();
+                    field_row_drag!(ui, "硬限制 (MiB):", &mut tuning.hard_limit);
+                    field_row_drag!(ui, "软限制 (MiB):", &mut tuning.soft_limit);
+                    field_row_drag!(ui, "交换硬限制 (MiB):", &mut tuning.swap_hard_limit);
+                    field_row_drag!(ui, "内存保证 (MiB):", &mut tuning.guarantee);
                 });
             }
         });

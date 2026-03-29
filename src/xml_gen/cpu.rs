@@ -3,13 +3,13 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::VMConfig;
+use crate::{error::AppError, model::VMConfig};
 
 /// 写入 CPU 配置
 pub fn write_cpu<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     if config.cpu.topology.is_some()
         || config.cpu.mode.is_some()
         || config.cpu.model.is_some()

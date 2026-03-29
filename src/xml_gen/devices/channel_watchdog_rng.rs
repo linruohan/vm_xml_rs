@@ -3,15 +3,18 @@ use quick_xml::{
     Writer,
 };
 
-use crate::model::devices::{
-    AddressConfig, ChannelConfig, MemballoonConfig, RngConfig, RngRate, RngSize, WatchdogConfig,
+use crate::{
+    error::AppError,
+    model::devices::{
+        AddressConfig, ChannelConfig, MemballoonConfig, RngConfig, RngRate, RngSize, WatchdogConfig,
+    },
 };
 
 /// 写入 Channel 通道设备
 pub fn write_channels<W: std::io::Write>(
     writer: &mut Writer<W>,
     channel_list: &[ChannelConfig],
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     for channel in channel_list {
         let mut channel_elem = BytesStart::new("channel");
         channel_elem.push_attribute(("type", channel.channel_type.as_str()));

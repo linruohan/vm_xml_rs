@@ -1,6 +1,10 @@
 use egui::RichText;
 
-use crate::{model::VMConfig, panels::utils::*};
+use crate::{
+    field_row, field_row_with_validation,
+    model::{validation, VMConfig},
+    panels::utils::*,
+};
 
 pub struct GeneralPanel;
 
@@ -32,12 +36,17 @@ impl GeneralPanel {
                 ui.end_row();
 
                 // UUID
-                ui.label("UUID:");
+                field_row_with_validation!(
+                    ui,
+                    "UUID:",
+                    config.general.uuid.get_or_insert_with(String::new),
+                    validation::validate_uuid(
+                        config.general.uuid.as_ref().unwrap_or(&String::new())
+                    ),
+                    RichText::new("⚠ UUID 格式无效（应为 8-4-4-4-12 十六进制格式）")
+                        .color(egui::Color32::from_rgb(255, 100, 100))
+                );
                 ui.horizontal(|ui| {
-                    let mut uuid_str = config.general.uuid.clone().unwrap_or_default();
-                    if ui.text_edit_singleline(&mut uuid_str).changed() {
-                        config.general.uuid = Some(uuid_str);
-                    }
                     if ui.button("🔄 生成").clicked() {
                         config.general.uuid = Some(uuid::Uuid::new_v4().to_string());
                     }
@@ -47,20 +56,11 @@ impl GeneralPanel {
                 // 描述
                 ui.label("描述:");
                 let desc = config.general.description.get_or_insert_with(String::new);
-                let mut desc = desc.clone();
-                if ui.text_edit_multiline(&mut desc).changed() {
-                    config.general.description = Some(desc);
-                }
+                ui.text_edit_multiline(desc);
                 ui.end_row();
 
                 // 标题
-                ui.label("标题:");
-                let title = config.general.title.get_or_insert_with(String::new);
-                let mut title = title.clone();
-                if ui.text_edit_singleline(&mut title).changed() {
-                    config.general.title = Some(title);
-                }
-                ui.end_row();
+                field_row!(ui, "标题:", config.general.title.get_or_insert_with(String::new));
             });
         });
 

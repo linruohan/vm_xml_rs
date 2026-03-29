@@ -4,13 +4,13 @@ use quick_xml::{
 };
 
 use super::general::write_element;
-use crate::model::VMConfig;
+use crate::{error::AppError, model::VMConfig};
 
 /// 写入系统引导配置（os 部分）
 pub fn write_os<W: std::io::Write>(
     writer: &mut Writer<W>,
     config: &VMConfig,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     if let Some(ref os) = config.general.os {
         let mut os_elem = BytesStart::new("os");
         if let Some(ref firmware) = os.firmware {

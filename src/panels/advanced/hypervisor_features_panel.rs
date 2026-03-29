@@ -801,7 +801,7 @@ fn feature_toggle(ui: &mut egui::Ui, label: &str, state: &mut Option<String>) {
         *state = Some("off".to_string());
     }
     egui::ComboBox::from_id_source(format!("feature_{}", label))
-        .selected_text(state.as_ref().unwrap())
+        .selected_text(state.as_deref().unwrap_or("off"))
         .show_ui(ui, |ui| {
             ui.selectable_value(state, Some("on".to_string()), "on");
             ui.selectable_value(state, Some("off".to_string()), "off");

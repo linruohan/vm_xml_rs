@@ -17,9 +17,9 @@ use crate::{
             VirtualPortParameters,
         },
         serial_console::{ChannelConfig, ChannelTarget, ParallelTarget, SerialTarget},
-        AddressConfig, ConsoleConfig, CryptoConfig, DiskConfig, DiskDriver, DiskSource, DiskTarget,
-        GraphicsConfig, HostdevConfig, InterfaceConfig, InterfaceModel, InterfaceSource,
-        MemoryDeviceConfig, RngConfig, SerialConfig, VMConfig,
+        validation, AddressConfig, ConsoleConfig, CryptoConfig, DiskConfig, DiskDriver, DiskSource,
+        DiskTarget, GraphicsConfig, HostdevConfig, InterfaceConfig, InterfaceModel,
+        InterfaceSource, MemoryDeviceConfig, RngConfig, SerialConfig, VMConfig,
     },
     panels::utils::*,
 };
@@ -1435,7 +1435,20 @@ impl DevicesPanel {
 
                                     if let Some(ref mut mac) = iface.mac {
                                         ui.label("MAC 地址:");
-                                        ui.text_edit_singleline(&mut mac.address);
+                                        let is_valid = validation::validate_mac(&mac.address);
+                                        let response = ui.text_edit_singleline(&mut mac.address);
+                                        if !is_valid {
+                                            response.on_hover_text(
+                                                egui::RichText::new(
+                                                    "⚠ MAC 格式无效（应为 xx:xx:xx:xx:xx:xx）",
+                                                )
+                                                .color(egui::Color32::from_rgb(255, 100, 100)),
+                                            );
+                                            ui.label(
+                                                egui::RichText::new("⚠")
+                                                    .color(egui::Color32::from_rgb(255, 100, 100)),
+                                            );
+                                        }
                                         ui.end_row();
                                     }
 
@@ -2124,17 +2137,17 @@ impl DevicesPanel {
                     ui.end_row();
 
                     ui.label("后端类型:");
-                    if let Some(ref backend) = tpm.backend {
+                    if let Some(ref mut backend) = tpm.backend {
                         egui::ComboBox::from_id_source("tpm_backend_type")
                             .selected_text(&backend.backend_type)
                             .show_ui(ui, |ui| {
                                 ui.selectable_value(
-                                    &mut tpm.backend.as_mut().unwrap().backend_type,
+                                    &mut backend.backend_type,
                                     "emulator".to_string(),
                                     "emulator",
                                 );
                                 ui.selectable_value(
-                                    &mut tpm.backend.as_mut().unwrap().backend_type,
+                                    &mut backend.backend_type,
                                     "passthrough".to_string(),
                                     "passthrough",
                                 );
@@ -2142,12 +2155,7 @@ impl DevicesPanel {
                         ui.end_row();
 
                         ui.label("TPM 版本:");
-                        let version = tpm
-                            .backend
-                            .as_mut()
-                            .unwrap()
-                            .version
-                            .get_or_insert_with(|| "2.0".to_string());
+                        let version = backend.version.get_or_insert_with(|| "2.0".to_string());
                         egui::ComboBox::from_id_source("tpm_version")
                             .selected_text(version.as_str())
                             .show_ui(ui, |ui| {
@@ -2157,21 +2165,13 @@ impl DevicesPanel {
                         ui.end_row();
 
                         ui.label("设备:");
-                        if let Some(ref mut device) = tpm.backend.as_mut().unwrap().device {
-                            ui.text_edit_singleline(device);
-                        } else {
-                            let mut empty = String::new();
-                            ui.text_edit_singleline(&mut empty);
-                        }
+                        let device = backend.device.get_or_insert_with(String::new);
+                        ui.text_edit_singleline(device);
                         ui.end_row();
 
                         ui.label("后端模型:");
-                        if let Some(ref mut model) = tpm.backend.as_mut().unwrap().model {
-                            ui.text_edit_singleline(model);
-                        } else {
-                            let mut empty = String::new();
-                            ui.text_edit_singleline(&mut empty);
-                        }
+                        let model = backend.model.get_or_insert_with(String::new);
+                        ui.text_edit_singleline(model);
                         ui.end_row();
                     }
                 });
@@ -5289,7 +5289,9 @@ impl DevicesPanel {
                                         if smartcard.certificate.is_none() {
                                             smartcard.certificate = Some(Vec::new());
                                         }
-                                        smartcard.certificate.as_mut().unwrap().push(String::new());
+                                        if let Some(ref mut certs) = smartcard.certificate {
+                                            certs.push(String::new());
+                                        }
                                     }
 
                                     if let Some(ref mut certs) = smartcard.certificate {
@@ -5453,14 +5455,10 @@ impl DevicesPanel {
     }
 
     fn generate_mac() -> String {
-        use std::time::{SystemTime, UNIX_EPOCH};
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
-        format!(
-            "52:54:00:{:02x}:{:02x}:{:02x}",
-            (timestamp >> 16) as u8,
-            (timestamp >> 8) as u8,
-            timestamp as u8
-        )
+        // 使用 uuid v4 的随机字节生成 MAC，避免时间戳碰撞
+        let bytes = uuid::Uuid::new_v4();
+        let b = bytes.as_bytes();
+        format!("52:54:00:{:02x}:{:02x}:{:02x}", b[0], b[1], b[2])
     }
 
     fn show_redirdev(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {

@@ -2,6 +2,8 @@ pub mod advanced;
 mod cpu_panel;
 mod devices_panel;
 mod general_panel;
+#[macro_use]
+mod macros;
 mod memory_panel;
 mod os_panel;
 pub(crate) mod utils;
