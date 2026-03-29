@@ -509,8 +509,7 @@ impl VMConfigApp {
     }
 
     fn import_xml(&mut self) -> Result<(), AppError> {
-        if let Some(path) = rfd::FileDialog::new().add_filter("XML 文件", &["xml"]).pick_file()
-        {
+        if let Some(path) = rfd::FileDialog::new().add_filter("XML 文件", &["xml"]).pick_file() {
             let content = std::fs::read_to_string(&path)?;
             self.config = crate::xml_import::import_from_xml(&content)?;
             self.generated_xml = String::new(); // 清除旧的 XML 缓存
@@ -529,13 +528,15 @@ impl eframe::App for VMConfigApp {
         }
 
         // 键盘快捷键支持
-        if ctx.input_mut(|i| i.consume_shortcut(&egui::KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::Z)))
-            && self.undo()
+        if ctx.input_mut(|i| {
+            i.consume_shortcut(&egui::KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::Z))
+        }) && self.undo()
         {
             self.set_status("已撤销", true);
         }
-        if ctx.input_mut(|i| i.consume_shortcut(&egui::KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::Y)))
-            && self.redo()
+        if ctx.input_mut(|i| {
+            i.consume_shortcut(&egui::KeyboardShortcut::new(egui::Modifiers::CTRL, egui::Key::Y))
+        }) && self.redo()
         {
             self.set_status("已重做", true);
         }

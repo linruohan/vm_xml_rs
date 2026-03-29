@@ -2,9 +2,9 @@
 //!
 //! 使用 quick-xml 的 Reader API 手动解析 libvirt XML 的扁平结构
 
-use quick_xml::events::Event;
-use quick_xml::Reader;
 use std::io::BufRead;
+
+use quick_xml::{events::Event, Reader};
 
 use crate::{error::AppError, model::vm_config::VMConfig};
 
@@ -38,30 +38,30 @@ pub fn import_from_xml(xml: &str) -> Result<VMConfig, AppError> {
                                     String::from_utf8_lossy(&attr.value).to_string();
                             }
                         }
-                    }
+                    },
                     b"name" => {
                         config.general.name = read_text_element(&mut reader)?;
-                    }
+                    },
                     b"uuid" => {
                         config.general.uuid = Some(read_text_element(&mut reader)?);
-                    }
+                    },
                     b"hwuuid" => {
                         config.general.hwuuid = Some(read_text_element(&mut reader)?);
-                    }
+                    },
                     b"genid" => {
                         config.general.genid = Some(read_text_element(&mut reader)?);
-                    }
+                    },
                     b"description" => {
                         config.general.description = Some(read_text_element(&mut reader)?);
-                    }
+                    },
                     b"title" => {
                         config.general.title = Some(read_text_element(&mut reader)?);
-                    }
+                    },
                     b"memory" => {
                         let (value, unit) = read_memory_element(&mut reader)?;
                         config.general.memory.value = value;
                         config.general.memory.unit = unit;
-                    }
+                    },
                     b"currentMemory" => {
                         let (value, unit) = read_memory_element(&mut reader)?;
                         config.general.current_memory = Some(crate::model::MemoryInfo {
@@ -70,7 +70,7 @@ pub fn import_from_xml(xml: &str) -> Result<VMConfig, AppError> {
                             dump_core: None,
                             value,
                         });
-                    }
+                    },
                     b"maxMemory" => {
                         let (value, unit) = read_memory_element(&mut reader)?;
                         config.general.max_memory = Some(crate::model::MemoryInfo {
@@ -79,37 +79,35 @@ pub fn import_from_xml(xml: &str) -> Result<VMConfig, AppError> {
                             dump_core: None,
                             value,
                         });
-                    }
+                    },
                     b"vcpu" => {
                         let vcpu = read_vcpu_element(&mut reader)?;
                         config.general.vcpu.count = vcpu.count as u32;
                         config.general.vcpu.placement = vcpu.placement;
                         config.general.vcpu.cpuset = vcpu.cpuset;
                         config.general.vcpu.current = vcpu.current.map(|v| v as u32);
-                    }
+                    },
                     b"os" => {
                         config.os_booting = read_os_element(&mut reader)?;
                         continue;
-                    }
+                    },
                     b"cpu" => {
                         config.cpu = read_cpu_element(&mut reader)?;
                         continue;
-                    }
+                    },
                     b"devices" => {
                         config.devices = read_devices_element(&mut reader)?;
                         continue;
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
-            }
-            Ok(Event::End(ref e))
-                if e.name().as_ref() == b"domain" =>
-            {
+            },
+            Ok(Event::End(ref e)) if e.name().as_ref() == b"domain" => {
                 break;
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
@@ -137,21 +135,23 @@ fn read_text_element<R: BufRead>(reader: &mut Reader<R>) -> Result<String, AppEr
                 let text = String::from_utf8_lossy(&e).trim().to_string();
                 buf.clear();
                 return Ok(text);
-            }
+            },
             Ok(Event::End(_)) | Ok(Event::Eof) => {
                 buf.clear();
                 return Ok(String::new());
-            }
+            },
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
             _ => {
                 buf.clear();
-            }
+            },
         }
     }
 }
 
 /// 读取 memory 元素（带 unit 属性）
-fn read_memory_element<R: BufRead>(reader: &mut Reader<R>) -> Result<(u64, Option<String>), AppError> {
+fn read_memory_element<R: BufRead>(
+    reader: &mut Reader<R>,
+) -> Result<(u64, Option<String>), AppError> {
     let mut buf = Vec::new();
     let mut value = 0u64;
     let mut unit: Option<String> = None;
@@ -172,14 +172,14 @@ fn read_memory_element<R: BufRead>(reader: &mut Reader<R>) -> Result<(u64, Optio
             Ok(Event::Text(e)) => {
                 let text = String::from_utf8_lossy(&e).trim().to_string();
                 value = text.parse().unwrap_or(0);
-            }
+            },
             Ok(Event::End(_)) => {
                 buf.clear();
                 break;
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
@@ -188,9 +188,7 @@ fn read_memory_element<R: BufRead>(reader: &mut Reader<R>) -> Result<(u64, Optio
 }
 
 /// 读取 vcpu 元素（带 placement、cpuset、current 属性）
-fn read_vcpu_element<R: BufRead>(
-    reader: &mut Reader<R>,
-) -> Result<VcpuResult, AppError> {
+fn read_vcpu_element<R: BufRead>(reader: &mut Reader<R>) -> Result<VcpuResult, AppError> {
     let mut buf = Vec::new();
     let mut count = 0u64;
     let mut placement: Option<String> = None;
@@ -206,7 +204,7 @@ fn read_vcpu_element<R: BufRead>(
                 b"placement" => placement = Some(val),
                 b"cpuset" => cpuset = Some(val),
                 b"current" => current = val.parse().ok(),
-                _ => {}
+                _ => {},
             }
         }
     }
@@ -218,28 +216,25 @@ fn read_vcpu_element<R: BufRead>(
             Ok(Event::Text(e)) => {
                 let text = String::from_utf8_lossy(&e).trim().to_string();
                 count = text.parse().unwrap_or(0);
-            }
+            },
             Ok(Event::End(_)) => {
                 buf.clear();
                 break;
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
 
-    Ok(VcpuResult {
-        count,
-        placement,
-        cpuset,
-        current,
-    })
+    Ok(VcpuResult { count, placement, cpuset, current })
 }
 
 /// 读取 OS 配置元素
-fn read_os_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::OSBootingConfig, AppError> {
+fn read_os_element<R: BufRead>(
+    reader: &mut Reader<R>,
+) -> Result<crate::model::OSBootingConfig, AppError> {
     use crate::model::{BootMenuConfig, OSBootingConfig, OSSystem};
 
     let mut config = OSBootingConfig::default();
@@ -259,7 +254,7 @@ fn read_os_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::O
                                 b"arch" => os_system.arch = Some(val),
                                 b"machine" => os_system.machine = Some(val),
                                 b"firmware" => os_system.firmware = Some(val),
-                                _ => {}
+                                _ => {},
                             }
                         }
                         // 读取 type 文本内容
@@ -270,7 +265,7 @@ fn read_os_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::O
                         }
                         // 我们需要将 OSSystem 的信息转换到 OSBootingConfig
                         // 由于结构不匹配，这里简化处理
-                    }
+                    },
                     b"boot" => {
                         // 读取 boot 元素
                         for attr in e.attributes().flatten() {
@@ -280,7 +275,7 @@ fn read_os_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::O
                         }
                         // 跳过 boot 元素的剩余部分
                         skip_element(reader, b"boot")?;
-                    }
+                    },
                     b"bootmenu" => {
                         let mut enable = "no".to_string();
                         let mut timeout: Option<u32> = None;
@@ -290,16 +285,16 @@ fn read_os_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::O
                             match attr.key.as_ref() {
                                 b"enable" => enable = val,
                                 b"timeout" => timeout = val.parse().ok(),
-                                _ => {}
+                                _ => {},
                             }
                         }
                         config.boot_menu = Some(BootMenuConfig { enable, timeout });
                         skip_element(reader, b"bootmenu")?;
-                    }
+                    },
                     b"kernel" => {
                         let _kernel_path = read_text_element(reader)?;
                         // OSBootingConfig 没有 kernel 字段，跳过
-                    }
+                    },
                     b"loader" => {
                         // 读取 loader 元素
                         for attr in e.attributes().flatten() {
@@ -309,31 +304,36 @@ fn read_os_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::O
                         // 读取 loader 文本内容
                         loop {
                             match reader.read_event_into(&mut buf) {
-                                Ok(Event::Text(_t)) => {}
+                                Ok(Event::Text(_t)) => {},
                                 Ok(Event::End(ref end)) if end.name().as_ref() == b"loader" => {
                                     buf.clear();
                                     break;
-                                }
+                                },
                                 Ok(Event::Eof) => break,
-                                Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-                                _ => {}
+                                Err(e) => {
+                                    return Err(AppError::XmlParseError(format!(
+                                        "XML 解析错误：{}",
+                                        e
+                                    )))
+                                },
+                                _ => {},
                             }
                             buf.clear();
                         }
-                    }
+                    },
                     _ => {
                         // 跳过未知元素
                         skip_current_element(reader, &buf)?;
-                    }
+                    },
                 }
-            }
+            },
             Ok(Event::End(ref e)) if e.name().as_ref() == b"os" => {
                 buf.clear();
                 return Ok(config);
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
@@ -354,10 +354,10 @@ fn skip_element<R: BufRead>(reader: &mut Reader<R>, name: &[u8]) -> Result<(), A
                     buf.clear();
                     return Ok(());
                 }
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
@@ -365,7 +365,10 @@ fn skip_element<R: BufRead>(reader: &mut Reader<R>, name: &[u8]) -> Result<(), A
 }
 
 /// 跳过当前元素（使用已读取的 buf）
-fn skip_current_element<R: BufRead>(reader: &mut Reader<R>, _buf: &Vec<u8>) -> Result<(), AppError> {
+fn skip_current_element<R: BufRead>(
+    reader: &mut Reader<R>,
+    _buf: &Vec<u8>,
+) -> Result<(), AppError> {
     // 简单处理：读取到对应的 End 事件
     let mut depth = 1;
     let mut local_buf = Vec::new();
@@ -378,10 +381,10 @@ fn skip_current_element<R: BufRead>(reader: &mut Reader<R>, _buf: &Vec<u8>) -> R
                     local_buf.clear();
                     return Ok(());
                 }
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         local_buf.clear();
     }
@@ -389,7 +392,9 @@ fn skip_current_element<R: BufRead>(reader: &mut Reader<R>, _buf: &Vec<u8>) -> R
 }
 
 /// 读取 CPU 配置元素
-fn read_cpu_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::CPUConfig, AppError> {
+fn read_cpu_element<R: BufRead>(
+    reader: &mut Reader<R>,
+) -> Result<crate::model::CPUConfig, AppError> {
     use crate::model::{CPUConfig, CPUFeatureConfig, CPUModel, CPUTopology};
 
     let mut config = CPUConfig::default();
@@ -415,21 +420,16 @@ fn read_cpu_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::
                                 b"threads" => threads = val.parse().unwrap_or(1),
                                 b"dies" => dies = val.parse().ok(),
                                 b"clusters" => clusters = val.parse().ok(),
-                                _ => {}
+                                _ => {},
                             }
                         }
 
-                        config.topology = Some(CPUTopology {
-                            sockets,
-                            cores,
-                            threads,
-                            dies,
-                            clusters,
-                        });
+                        config.topology =
+                            Some(CPUTopology { sockets, cores, threads, dies, clusters });
 
                         // 跳过 topology 元素的剩余部分
                         skip_element(reader, b"topology")?;
-                    }
+                    },
                     b"model" => {
                         let mut fallback: Option<String> = None;
                         let mut vendor_id: Option<String> = None;
@@ -440,19 +440,15 @@ fn read_cpu_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::
                             match key {
                                 b"fallback" => fallback = Some(val),
                                 b"vendor_id" => vendor_id = Some(val),
-                                _ => {}
+                                _ => {},
                             }
                         }
 
                         // 读取 model 文本内容
                         let name = read_text_element(reader)?;
 
-                        config.model = Some(CPUModel {
-                            fallback,
-                            vendor_id,
-                            name,
-                        });
-                    }
+                        config.model = Some(CPUModel { fallback, vendor_id, name });
+                    },
                     b"feature" => {
                         let mut policy = String::new();
                         let mut name = String::new();
@@ -463,7 +459,7 @@ fn read_cpu_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::
                             match key {
                                 b"policy" => policy = val,
                                 b"name" => name = val,
-                                _ => {}
+                                _ => {},
                             }
                         }
 
@@ -476,17 +472,17 @@ fn read_cpu_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::
 
                         // 跳过 feature 元素的剩余部分
                         skip_element(reader, b"feature")?;
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
-            }
+            },
             Ok(Event::End(ref e)) if e.name().as_ref() == b"cpu" => {
                 buf.clear();
                 return Ok(config);
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
@@ -495,54 +491,54 @@ fn read_cpu_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::
 }
 
 /// 读取设备配置元素
-fn read_devices_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::DevicesConfig, AppError> {
+fn read_devices_element<R: BufRead>(
+    reader: &mut Reader<R>,
+) -> Result<crate::model::DevicesConfig, AppError> {
     let mut buf = Vec::new();
     let mut devices = crate::model::DevicesConfig::default();
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(ref e)) => {
-                match e.name().as_ref() {
-                    b"disk" => {
-                        let disk = read_disk_element(reader)?;
-                        devices.disk.get_or_insert_with(Vec::new).push(disk);
-                        continue;
-                    }
-                    b"interface" => {
-                        let network = read_interface_element(reader)?;
-                        devices.interface.get_or_insert_with(Vec::new).push(network);
-                        continue;
-                    }
-                    b"graphics" => {
-                        let graphics = read_graphics_element(reader)?;
-                        devices.graphics.get_or_insert_with(Vec::new).push(graphics);
-                        continue;
-                    }
-                    b"video" => {
-                        let video = read_video_element(reader)?;
-                        devices.video.get_or_insert_with(Vec::new).push(video);
-                        continue;
-                    }
-                    b"console" => {
-                        let console = read_console_element(reader)?;
-                        devices.console = Some(console);
-                        continue;
-                    }
-                    b"serial" => {
-                        let serial = read_serial_element(reader)?;
-                        devices.serial.get_or_insert_with(Vec::new).push(serial);
-                        continue;
-                    }
-                    _ => {}
-                }
-            }
+            Ok(Event::Start(ref e)) => match e.name().as_ref() {
+                b"disk" => {
+                    let disk = read_disk_element(reader)?;
+                    devices.disk.get_or_insert_with(Vec::new).push(disk);
+                    continue;
+                },
+                b"interface" => {
+                    let network = read_interface_element(reader)?;
+                    devices.interface.get_or_insert_with(Vec::new).push(network);
+                    continue;
+                },
+                b"graphics" => {
+                    let graphics = read_graphics_element(reader)?;
+                    devices.graphics.get_or_insert_with(Vec::new).push(graphics);
+                    continue;
+                },
+                b"video" => {
+                    let video = read_video_element(reader)?;
+                    devices.video.get_or_insert_with(Vec::new).push(video);
+                    continue;
+                },
+                b"console" => {
+                    let console = read_console_element(reader)?;
+                    devices.console = Some(console);
+                    continue;
+                },
+                b"serial" => {
+                    let serial = read_serial_element(reader)?;
+                    devices.serial.get_or_insert_with(Vec::new).push(serial);
+                    continue;
+                },
+                _ => {},
+            },
             Ok(Event::End(ref e)) if e.name().as_ref() == b"devices" => {
                 buf.clear();
                 return Ok(devices);
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
@@ -551,7 +547,9 @@ fn read_devices_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::mod
 }
 
 /// 读取 disk 设备元素
-fn read_disk_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::DiskConfig, AppError> {
+fn read_disk_element<R: BufRead>(
+    reader: &mut Reader<R>,
+) -> Result<crate::model::DiskConfig, AppError> {
     use crate::model::devices::disk::{DiskConfig, DiskDriver, DiskSource, DiskTarget};
 
     let mut disk_type = "file".to_string();
@@ -570,7 +568,7 @@ fn read_disk_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model:
             match key {
                 b"type" => disk_type = val,
                 b"device" => device = val,
-                _ => {}
+                _ => {},
             }
         }
     }
@@ -578,108 +576,106 @@ fn read_disk_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model:
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(ref e)) => {
-                match e.name().as_ref() {
-                    b"driver" => {
-                        let mut name = "qemu".to_string();
-                        let mut driver_type = "raw".to_string();
-                        let mut cache: Option<String> = None;
+            Ok(Event::Start(ref e)) => match e.name().as_ref() {
+                b"driver" => {
+                    let mut name = "qemu".to_string();
+                    let mut driver_type = "raw".to_string();
+                    let mut cache: Option<String> = None;
 
-                        for attr in e.attributes().flatten() {
-                            let key = attr.key.as_ref();
-                            let val = String::from_utf8_lossy(&attr.value).to_string();
-                            match key {
-                                b"name" => name = val,
-                                b"type" => driver_type = val,
-                                b"cache" => cache = Some(val),
-                                _ => {}
-                            }
+                    for attr in e.attributes().flatten() {
+                        let key = attr.key.as_ref();
+                        let val = String::from_utf8_lossy(&attr.value).to_string();
+                        match key {
+                            b"name" => name = val,
+                            b"type" => driver_type = val,
+                            b"cache" => cache = Some(val),
+                            _ => {},
                         }
-
-                        driver = Some(DiskDriver {
-                            name,
-                            driver_type,
-                            cache,
-                            error_policy: None,
-                            rerror_policy: None,
-                            io: None,
-                            ioeventfd: None,
-                            event_idx: None,
-                            copy_on_read: None,
-                            discard: None,
-                            detect_zeroes: None,
-                            queues: None,
-                            queue_size: None,
-                            iothread: None,
-                            iothreads: None,
-                            statistics: None,
-                            latency_histogram: None,
-                            discard_no_unref: None,
-                            metadata_cache: None,
-                        });
-
-                        skip_element(reader, b"driver")?;
                     }
-                    b"source" => {
-                        let mut file: Option<String> = None;
-                        let mut dev: Option<String> = None;
 
-                        for attr in e.attributes().flatten() {
-                            let key = attr.key.as_ref();
-                            let val = String::from_utf8_lossy(&attr.value).to_string();
-                            match key {
-                                b"file" => file = Some(val),
-                                b"dev" => dev = Some(val),
-                                _ => {}
-                            }
+                    driver = Some(DiskDriver {
+                        name,
+                        driver_type,
+                        cache,
+                        error_policy: None,
+                        rerror_policy: None,
+                        io: None,
+                        ioeventfd: None,
+                        event_idx: None,
+                        copy_on_read: None,
+                        discard: None,
+                        detect_zeroes: None,
+                        queues: None,
+                        queue_size: None,
+                        iothread: None,
+                        iothreads: None,
+                        statistics: None,
+                        latency_histogram: None,
+                        discard_no_unref: None,
+                        metadata_cache: None,
+                    });
+
+                    skip_element(reader, b"driver")?;
+                },
+                b"source" => {
+                    let mut file: Option<String> = None;
+                    let mut dev: Option<String> = None;
+
+                    for attr in e.attributes().flatten() {
+                        let key = attr.key.as_ref();
+                        let val = String::from_utf8_lossy(&attr.value).to_string();
+                        match key {
+                            b"file" => file = Some(val),
+                            b"dev" => dev = Some(val),
+                            _ => {},
                         }
-
-                        source = Some(DiskSource {
-                            file,
-                            dev,
-                            protocol: None,
-                            name: None,
-                            startup_policy: None,
-                            host: None,
-                            auth: None,
-                            seclabel: None,
-                        });
-
-                        skip_element(reader, b"source")?;
                     }
-                    b"target" => {
-                        let mut dev = "vda".to_string();
-                        let mut bus: Option<String> = None;
 
-                        for attr in e.attributes().flatten() {
-                            let key = attr.key.as_ref();
-                            let val = String::from_utf8_lossy(&attr.value).to_string();
-                            match key {
-                                b"dev" => dev = val,
-                                b"bus" => bus = Some(val),
-                                _ => {}
-                            }
+                    source = Some(DiskSource {
+                        file,
+                        dev,
+                        protocol: None,
+                        name: None,
+                        startup_policy: None,
+                        host: None,
+                        auth: None,
+                        seclabel: None,
+                    });
+
+                    skip_element(reader, b"source")?;
+                },
+                b"target" => {
+                    let mut dev = "vda".to_string();
+                    let mut bus: Option<String> = None;
+
+                    for attr in e.attributes().flatten() {
+                        let key = attr.key.as_ref();
+                        let val = String::from_utf8_lossy(&attr.value).to_string();
+                        match key {
+                            b"dev" => dev = val,
+                            b"bus" => bus = Some(val),
+                            _ => {},
                         }
+                    }
 
-                        target = Some(DiskTarget {
-                            dev,
-                            bus,
-                            tray: None,
-                            rotation_rate: None,
-                            removable: None,
-                            dpofua: None,
-                        });
+                    target = Some(DiskTarget {
+                        dev,
+                        bus,
+                        tray: None,
+                        rotation_rate: None,
+                        removable: None,
+                        dpofua: None,
+                    });
 
-                        skip_element(reader, b"target")?;
-                    }
-                    b"boot" => {
-                        skip_element(reader, b"boot")?;
-                    }
-                    _ => {
-                        skip_current_element(reader, &buf)?;
-                    }
-                }
-            }
+                    skip_element(reader, b"target")?;
+                },
+                b"boot" => {
+                    skip_element(reader, b"boot")?;
+                },
+                _ => {
+                    skip_current_element(reader, &buf)?;
+                },
+            },
             Ok(Event::End(ref e)) if e.name().as_ref() == b"disk" => {
                 buf.clear();
                 return Ok(DiskConfig {
@@ -705,10 +701,10 @@ fn read_disk_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model:
                     wwn: None,
                     vendor: None,
                 });
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
@@ -739,8 +735,12 @@ fn read_disk_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model:
 }
 
 /// 读取 interface（网络）设备元素
-fn read_interface_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::InterfaceConfig, AppError> {
-    use crate::model::devices::network::{InterfaceConfig, InterfaceModel, InterfaceSource, MacAddress};
+fn read_interface_element<R: BufRead>(
+    reader: &mut Reader<R>,
+) -> Result<crate::model::InterfaceConfig, AppError> {
+    use crate::model::devices::network::{
+        InterfaceConfig, InterfaceModel, InterfaceSource, MacAddress,
+    };
 
     let mut interface_type = "network".to_string();
     let mut mac: Option<MacAddress> = None;
@@ -761,63 +761,52 @@ fn read_interface_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::m
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(ref e)) => {
-                match e.name().as_ref() {
-                    b"mac" => {
-                        let mut address = String::new();
-                        for attr in e.attributes().flatten() {
-                            if attr.key.as_ref() == b"address" {
-                                address = String::from_utf8_lossy(&attr.value).to_string();
-                            }
+            Ok(Event::Start(ref e)) => match e.name().as_ref() {
+                b"mac" => {
+                    let mut address = String::new();
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"address" {
+                            address = String::from_utf8_lossy(&attr.value).to_string();
                         }
-                        mac = Some(MacAddress {
-                            address,
-                            mac_type: None,
-                            current_address: None,
-                        });
-                        skip_element(reader, b"mac")?;
                     }
-                    b"source" => {
-                        let mut bridge: Option<String> = None;
-                        let mut network: Option<String> = None;
-                        let mut dev: Option<String> = None;
-                        let mut mode: Option<String> = None;
+                    mac = Some(MacAddress { address, mac_type: None, current_address: None });
+                    skip_element(reader, b"mac")?;
+                },
+                b"source" => {
+                    let mut bridge: Option<String> = None;
+                    let mut network: Option<String> = None;
+                    let mut dev: Option<String> = None;
+                    let mut mode: Option<String> = None;
 
-                        for attr in e.attributes().flatten() {
-                            let key = attr.key.as_ref();
-                            let val = String::from_utf8_lossy(&attr.value).to_string();
-                            match key {
-                                b"bridge" => bridge = Some(val),
-                                b"network" => network = Some(val),
-                                b"dev" => dev = Some(val),
-                                b"mode" => mode = Some(val),
-                                _ => {}
-                            }
+                    for attr in e.attributes().flatten() {
+                        let key = attr.key.as_ref();
+                        let val = String::from_utf8_lossy(&attr.value).to_string();
+                        match key {
+                            b"bridge" => bridge = Some(val),
+                            b"network" => network = Some(val),
+                            b"dev" => dev = Some(val),
+                            b"mode" => mode = Some(val),
+                            _ => {},
                         }
+                    }
 
-                        source = Some(InterfaceSource {
-                            bridge,
-                            network,
-                            dev,
-                            mode,
-                        });
-                        skip_element(reader, b"source")?;
-                    }
-                    b"model" => {
-                        let mut model_type = "virtio".to_string();
-                        for attr in e.attributes().flatten() {
-                            if attr.key.as_ref() == b"type" {
-                                model_type = String::from_utf8_lossy(&attr.value).to_string();
-                            }
+                    source = Some(InterfaceSource { bridge, network, dev, mode });
+                    skip_element(reader, b"source")?;
+                },
+                b"model" => {
+                    let mut model_type = "virtio".to_string();
+                    for attr in e.attributes().flatten() {
+                        if attr.key.as_ref() == b"type" {
+                            model_type = String::from_utf8_lossy(&attr.value).to_string();
                         }
-                        model = Some(InterfaceModel { model_type });
-                        skip_element(reader, b"model")?;
                     }
-                    _ => {
-                        skip_current_element(reader, &buf)?;
-                    }
-                }
-            }
+                    model = Some(InterfaceModel { model_type });
+                    skip_element(reader, b"model")?;
+                },
+                _ => {
+                    skip_current_element(reader, &buf)?;
+                },
+            },
             Ok(Event::End(ref e)) if e.name().as_ref() == b"interface" => {
                 buf.clear();
                 return Ok(InterfaceConfig {
@@ -845,10 +834,10 @@ fn read_interface_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::m
                     ip: None,
                     port_forward: None,
                 });
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
@@ -881,7 +870,9 @@ fn read_interface_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::m
 }
 
 /// 读取 graphics 设备元素
-fn read_graphics_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::GraphicsConfig, AppError> {
+fn read_graphics_element<R: BufRead>(
+    reader: &mut Reader<R>,
+) -> Result<crate::model::GraphicsConfig, AppError> {
     let mut graphics_type = "spice".to_string();
     let mut port: Option<String> = None;
     let mut autoport: Option<String> = None;
@@ -900,7 +891,7 @@ fn read_graphics_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::mo
                 b"autoport" => autoport = Some(val),
                 b"listen" => listen = Some(val),
                 b"keymap" => keymap = Some(val),
-                _ => {}
+                _ => {},
             }
         }
     }
@@ -912,10 +903,10 @@ fn read_graphics_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::mo
             Ok(Event::End(ref e)) if e.name().as_ref() == b"graphics" => {
                 buf.clear();
                 break;
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
@@ -946,7 +937,9 @@ fn read_graphics_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::mo
 }
 
 /// 读取 video 设备元素
-fn read_video_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::VideoConfig, AppError> {
+fn read_video_element<R: BufRead>(
+    reader: &mut Reader<R>,
+) -> Result<crate::model::VideoConfig, AppError> {
     use crate::model::devices::graphics_video::VideoModel;
 
     let video_type: Option<String> = None;
@@ -959,33 +952,31 @@ fn read_video_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(ref e)) => {
-                match e.name().as_ref() {
-                    b"model" => {
-                        for attr in e.attributes().flatten() {
-                            let key = attr.key.as_ref();
-                            let val = String::from_utf8_lossy(&attr.value).to_string();
-                            match key {
-                                b"type" => model_type = val,
-                                b"vram" => vram = val.parse().ok(),
-                                b"heads" => heads = val.parse().ok(),
-                                _ => {}
-                            }
+            Ok(Event::Start(ref e)) => match e.name().as_ref() {
+                b"model" => {
+                    for attr in e.attributes().flatten() {
+                        let key = attr.key.as_ref();
+                        let val = String::from_utf8_lossy(&attr.value).to_string();
+                        match key {
+                            b"type" => model_type = val,
+                            b"vram" => vram = val.parse().ok(),
+                            b"heads" => heads = val.parse().ok(),
+                            _ => {},
                         }
-                        skip_element(reader, b"model")?;
                     }
-                    _ => {
-                        skip_current_element(reader, &buf)?;
-                    }
-                }
-            }
+                    skip_element(reader, b"model")?;
+                },
+                _ => {
+                    skip_current_element(reader, &buf)?;
+                },
+            },
             Ok(Event::End(ref e)) if e.name().as_ref() == b"video" => {
                 buf.clear();
                 break;
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
@@ -1012,7 +1003,9 @@ fn read_video_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model
 }
 
 /// 读取 console 设备元素
-fn read_console_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::ConsoleConfig, AppError> {
+fn read_console_element<R: BufRead>(
+    reader: &mut Reader<R>,
+) -> Result<crate::model::ConsoleConfig, AppError> {
     let mut console_type = "pty".to_string();
 
     let mut buf = Vec::new();
@@ -1032,24 +1025,21 @@ fn read_console_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::mod
             Ok(Event::End(ref e)) if e.name().as_ref() == b"console" => {
                 buf.clear();
                 break;
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }
 
-    Ok(crate::model::ConsoleConfig {
-        console_type,
-        source: None,
-        target: None,
-        log: None,
-    })
+    Ok(crate::model::ConsoleConfig { console_type, source: None, target: None, log: None })
 }
 
 /// 读取 serial 设备元素
-fn read_serial_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::model::SerialConfig, AppError> {
+fn read_serial_element<R: BufRead>(
+    reader: &mut Reader<R>,
+) -> Result<crate::model::SerialConfig, AppError> {
     let mut serial_type = "pty".to_string();
 
     let mut buf = Vec::new();
@@ -1069,10 +1059,10 @@ fn read_serial_element<R: BufRead>(reader: &mut Reader<R>) -> Result<crate::mode
             Ok(Event::End(ref e)) if e.name().as_ref() == b"serial" => {
                 buf.clear();
                 break;
-            }
+            },
             Ok(Event::Eof) => break,
             Err(e) => return Err(AppError::XmlParseError(format!("XML 解析错误：{}", e))),
-            _ => {}
+            _ => {},
         }
         buf.clear();
     }

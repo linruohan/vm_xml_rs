@@ -104,11 +104,11 @@ impl XMLGenerator {
                     if writer.write_event(cloned).is_err() {
                         return xml.to_string();
                     }
-                }
+                },
                 Err(_) => {
                     // 如果解析失败，返回原始 XML
                     return xml.to_string();
-                }
+                },
             }
             buf.clear();
         }
