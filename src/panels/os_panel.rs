@@ -1,11 +1,12 @@
 use crate::{
     model::{BootConfig, BootMenuConfig, LoaderConfig, VMConfig},
-    panels::utils::*,
+    panels::utils::{ThemeColors, *},
 };
 
 pub struct OSPanel;
 
 impl OSPanel {
+    /// 显示操作系统引导配置面板
     pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "💿", "操作系统引导配置");
 

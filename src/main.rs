@@ -1,3 +1,4 @@
+#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 mod app;
 mod model;
 mod panels;
@@ -5,7 +6,6 @@ mod xml_gen;
 
 use app::VMConfigApp;
 use eframe::icon_data;
-use panels::utils::{get_theme_colors, Theme};
 
 /// 从 PNG 文件加载图标
 fn load_icon() -> egui::IconData {
@@ -54,21 +54,6 @@ fn main() -> eframe::Result<()> {
         Box::new(|cc| {
             // 设置字体
             cc.egui_ctx.set_fonts(fonts);
-
-            // 设置初始主题（浅色）
-            let colors = get_theme_colors(Theme::Light);
-            let mut style = (*cc.egui_ctx.style()).clone();
-            style.visuals.dark_mode = false;
-            style.visuals.window_fill = colors.window_fill;
-            style.visuals.panel_fill = colors.panel_fill;
-            style.visuals.override_text_color = Some(colors.text_primary);
-            style.visuals.widgets.inactive.bg_fill = colors.input_background;
-            style.visuals.widgets.hovered.bg_fill = colors.input_background;
-            style.visuals.widgets.active.bg_fill = colors.input_background;
-            style.visuals.extreme_bg_color = colors.input_background;
-            style.visuals.widgets.noninteractive.bg_fill = colors.input_background;
-            cc.egui_ctx.set_style(style);
-
             Box::new(VMConfigApp::new(cc))
         }),
     )

@@ -80,8 +80,8 @@ impl XMLGenerator {
     }
 
     /// 格式化 XML，添加缩进
+    /// 简单标签（如 <name>value</name>）会放在一行，复杂标签会展开多行
     pub fn format_xml(xml: &str) -> String {
-        // 简单的 XML 格式化实现
         let mut result: String = String::new();
         let mut indent_level: i32 = 0;
         let indent = "  ";
@@ -100,7 +100,7 @@ impl XMLGenerator {
 
             // 找到标签的开始
             if chars[i] == '<' {
-                let start = i;
+                let tag_start = i;
                 // 找到标签的结束
                 while i < chars.len() && chars[i] != '>' {
                     i += 1;
@@ -109,33 +109,45 @@ impl XMLGenerator {
                     i += 1; // 包含 '>'
                 }
 
-                let tag: String = chars[start..i].iter().collect();
+                let tag: String = chars[tag_start..i].iter().collect();
                 let trimmed_tag = tag.trim();
 
                 if trimmed_tag.is_empty() {
                     continue;
                 }
 
-                // 处理结束标签
+                // 处理结束标签 - 先减少缩进
                 if trimmed_tag.starts_with("</") {
                     indent_level = indent_level.saturating_sub(1);
                 }
 
-                // 添加缩进
-                for _ in 0..indent_level {
-                    result.push_str(indent);
-                }
-                result.push_str(trimmed_tag);
-                result.push('\n');
+                // 检查是否是简单标签（<tag>value</tag> 在同一行）
+                let is_simple_tag = Self::is_simple_tag(&chars, i, &trimmed_tag);
 
-                // 处理开始标签（非自闭合）
-                if trimmed_tag.starts_with('<')
-                    && !trimmed_tag.starts_with("<?")
-                    && !trimmed_tag.starts_with("<!--")
-                    && !trimmed_tag.ends_with("/>")
-                    && !trimmed_tag.starts_with("</")
-                {
-                    indent_level += 1;
+                if is_simple_tag {
+                    // 简单标签：收集开始标签 + 内容 + 结束标签
+                    let (full_line, new_i) = Self::collect_simple_tag(&chars, i, tag_start, indent_level, indent);
+                    result.push_str(&full_line);
+                    result.push('\n');
+                    i = new_i;
+                } else {
+                    // 复杂标签或自闭合标签
+                    // 添加缩进
+                    for _ in 0..indent_level {
+                        result.push_str(indent);
+                    }
+                    result.push_str(trimmed_tag);
+                    result.push('\n');
+
+                    // 处理开始标签（非自闭合）- 增加缩进
+                    if trimmed_tag.starts_with('<')
+                        && !trimmed_tag.starts_with("<?")
+                        && !trimmed_tag.starts_with("<!--")
+                        && !trimmed_tag.ends_with("/>")
+                        && !trimmed_tag.starts_with("</")
+                    {
+                        indent_level += 1;
+                    }
                 }
             } else {
                 // 文本内容，跳过
@@ -146,5 +158,127 @@ impl XMLGenerator {
         }
 
         result.trim_end().to_string()
+    }
+
+    /// 检查当前位置开始是否是简单标签（<tag>value</tag>）
+    fn is_simple_tag(chars: &[char], pos: usize, start_tag: &str) -> bool {
+        // 必须是开始标签
+        if !start_tag.starts_with('<')
+            || start_tag.starts_with("</")
+            || start_tag.starts_with("<?")
+            || start_tag.starts_with("<!--")
+            || start_tag.ends_with("/>")
+        {
+            return false;
+        }
+
+        // 提取标签名
+        let tag_name = Self::extract_tag_name(start_tag);
+        if tag_name.is_empty() {
+            return false;
+        }
+
+        // 查找对应的结束标签
+        let mut i = pos;
+        let end_tag = format!("</{}>", tag_name);
+
+        // 跳过空白字符
+        while i < chars.len() && chars[i].is_whitespace() {
+            i += 1;
+        }
+
+        // 收集内容直到遇到标签
+        let content_start = i;
+        while i < chars.len() && chars[i] != '<' {
+            i += 1;
+        }
+
+        // 检查内容是否包含换行或其他标签
+        let content: String = chars[content_start..i].iter().collect();
+        if content.contains('\n') || content.contains('<') {
+            return false;
+        }
+
+        // 检查接下来是否是匹配的结束标签
+        let remaining: String = chars[i..].iter().collect();
+        remaining.trim_start().starts_with(&end_tag)
+    }
+
+    /// 提取标签名（从 <tag 或 <tag> 中提取 tag）
+    fn extract_tag_name(tag: &str) -> String {
+        let tag = tag.trim();
+        if !tag.starts_with('<') {
+            return String::new();
+        }
+
+        let mut start = 1;
+        // 跳过 <?xml 等特殊标签的开头
+        if tag.starts_with("<?") {
+            start = 2;
+        }
+
+        let mut end = start;
+        while end < tag.len() && !tag[end..].starts_with('>') && !tag[end..].starts_with(' ') {
+            end += 1;
+        }
+
+        tag[start..end].to_string()
+    }
+
+    /// 收集简单标签的完整内容（包括缩进、开始标签、内容、结束标签）
+    fn collect_simple_tag(
+        chars: &[char],
+        pos: usize,
+        tag_start: usize,
+        indent_level: i32,
+        indent: &str,
+    ) -> (String, usize) {
+        let mut result = String::new();
+
+        // 添加缩进
+        for _ in 0..indent_level {
+            result.push_str(indent);
+        }
+
+        // 添加开始标签
+        let mut i = tag_start;
+        while i < chars.len() && chars[i] != '>' {
+            result.push(chars[i]);
+            i += 1;
+        }
+        if i < chars.len() {
+            result.push(chars[i]); // '>'
+            i += 1;
+        }
+
+        // 跳过空白字符
+        while i < chars.len() && chars[i].is_whitespace() {
+            i += 1;
+        }
+
+        // 添加内容
+        let content_start = i;
+        while i < chars.len() && chars[i] != '<' {
+            i += 1;
+        }
+        let content: String = chars[content_start..i].iter().collect();
+        result.push_str(&content);
+
+        // 跳过空白字符
+        while i < chars.len() && chars[i].is_whitespace() {
+            i += 1;
+        }
+
+        // 添加结束标签
+        while i < chars.len() && chars[i] != '>' {
+            result.push(chars[i]);
+            i += 1;
+        }
+        if i < chars.len() {
+            result.push(chars[i]); // '>'
+            i += 1;
+        }
+
+        (result, i)
     }
 }
