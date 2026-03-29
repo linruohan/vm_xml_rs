@@ -30,6 +30,8 @@ impl LaunchSecurityPanel {
                             model: "selinux".to_string(),
                             relabel: None,
                             label: None,
+                            baselabel: None,
+                            imagelabel: None,
                         });
                     }
                     if let Some(ref mut seclabel) = launch_security.seclabel {

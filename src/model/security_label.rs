@@ -10,4 +10,8 @@ pub struct SecurityLabelConfig {
     pub relabel: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub baselabel: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub imagelabel: Option<String>,
 }

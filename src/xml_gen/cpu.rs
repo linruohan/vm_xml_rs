@@ -86,6 +86,33 @@ pub fn write_cpu<W: std::io::Write>(
                 if let Some(ref mode) = cache.mode {
                     cache_elem.push_attribute(("mode", mode.as_str()));
                 }
+                if let Some(ref associativity) = cache.associativity {
+                    cache_elem.push_attribute(("associativity", associativity.as_str()));
+                }
+                if let Some(ref policy) = cache.policy {
+                    cache_elem.push_attribute(("policy", policy.as_str()));
+                }
+
+                // 写入 size 子元素
+                if let Some(ref size) = cache.size {
+                    let mut size_elem = BytesStart::new("size");
+                    if let Some(ref unit) = size.unit {
+                        size_elem.push_attribute(("unit", unit.as_str()));
+                    }
+                    size_elem.push_attribute(("value", size.value.to_string().as_str()));
+                    writer.write_event(Event::Empty(size_elem)).map_err(|e| e.to_string())?;
+                }
+
+                // 写入 line 子元素
+                if let Some(ref line) = cache.line {
+                    let mut line_elem = BytesStart::new("line");
+                    if let Some(ref unit) = line.unit {
+                        line_elem.push_attribute(("unit", unit.as_str()));
+                    }
+                    line_elem.push_attribute(("value", line.value.to_string().as_str()));
+                    writer.write_event(Event::Empty(line_elem)).map_err(|e| e.to_string())?;
+                }
+
                 writer.write_event(Event::Empty(cache_elem)).map_err(|e| e.to_string())?;
             }
         }

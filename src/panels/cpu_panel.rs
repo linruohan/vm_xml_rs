@@ -349,6 +349,10 @@ impl CPUPanel {
                         cache_list.push(crate::model::CacheConfig {
                             level: Some(3),
                             mode: Some("emulate".to_string()),
+                            associativity: None,
+                            policy: None,
+                            size: None,
+                            line: None,
                         });
                     }
                 });
@@ -356,45 +360,219 @@ impl CPUPanel {
                 let mut to_remove = None;
                 for (i, cache) in cache_list.iter_mut().enumerate() {
                     ui.push_id(i, |ui| {
-                        ui.horizontal(|ui| {
-                            ui.label(format!("{}. ", i + 1));
+                        inner_group(ui, colors, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(format!("{}. ", i + 1));
 
-                            // Cache Level
-                            let level = cache.level.get_or_insert(3);
-                            egui::ComboBox::from_id_source(format!("cache_level_{}", i))
-                                .selected_text(format!("L{}", level))
-                                .width(80.0)
-                                .show_ui(ui, |ui| {
-                                    if ui.selectable_label(*level == 1, "L1").clicked() {
-                                        *level = 1;
+                                // Cache Level
+                                let level = cache.level.get_or_insert(3);
+                                egui::ComboBox::from_id_source(format!("cache_level_{}", i))
+                                    .selected_text(format!("L{}", level))
+                                    .width(80.0)
+                                    .show_ui(ui, |ui| {
+                                        if ui.selectable_label(*level == 1, "L1").clicked() {
+                                            *level = 1;
+                                        }
+                                        if ui.selectable_label(*level == 2, "L2").clicked() {
+                                            *level = 2;
+                                        }
+                                        if ui.selectable_label(*level == 3, "L3").clicked() {
+                                            *level = 3;
+                                        }
+                                    });
+
+                                // Mode
+                                let mode = cache.mode.get_or_insert_with(|| "emulate".to_string());
+                                egui::ComboBox::from_id_source(format!("cache_mode_{}", i))
+                                    .selected_text(mode.as_str())
+                                    .width(100.0)
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(mode, "emulate".to_string(), "emulate");
+                                        ui.selectable_value(
+                                            mode,
+                                            "passthrough".to_string(),
+                                            "passthrough",
+                                        );
+                                        ui.selectable_value(mode, "disable".to_string(), "disable");
+                                    });
+
+                                if delete_button(ui, None) {
+                                    to_remove = Some(i);
+                                }
+                            });
+
+                            ui.add_space(5.0);
+
+                            // 关联度和策略
+                            grid(ui, format!("cache_assoc_grid_{}", i), 2, |ui| {
+                                ui.label("关联度:");
+                                let associativity =
+                                    cache.associativity.get_or_insert_with(|| "".to_string());
+                                egui::ComboBox::from_id_source(format!("cache_assoc_{}", i))
+                                    .selected_text(associativity.as_str())
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(associativity, "".to_string(), "默认");
+                                        ui.selectable_value(
+                                            associativity,
+                                            "none".to_string(),
+                                            "none",
+                                        );
+                                        ui.selectable_value(
+                                            associativity,
+                                            "direct".to_string(),
+                                            "direct",
+                                        );
+                                        ui.selectable_value(
+                                            associativity,
+                                            "full".to_string(),
+                                            "full",
+                                        );
+                                    });
+                                ui.end_row();
+
+                                ui.label("写策略:");
+                                let policy = cache.policy.get_or_insert_with(|| "".to_string());
+                                egui::ComboBox::from_id_source(format!("cache_policy_{}", i))
+                                    .selected_text(policy.as_str())
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(policy, "".to_string(), "默认");
+                                        ui.selectable_value(policy, "none".to_string(), "none");
+                                        ui.selectable_value(
+                                            policy,
+                                            "writeback".to_string(),
+                                            "writeback",
+                                        );
+                                        ui.selectable_value(
+                                            policy,
+                                            "writethrough".to_string(),
+                                            "writethrough",
+                                        );
+                                    });
+                                ui.end_row();
+                            });
+
+                            ui.add_space(5.0);
+
+                            // 缓存大小和行大小
+                            grid(ui, format!("cache_size_grid_{}", i), 2, |ui| {
+                                ui.label("缓存大小:");
+                                ui.horizontal(|ui| {
+                                    let size_val =
+                                        if let Some(ref mut s) = cache.size { s.value } else { 0 };
+                                    let mut size_value = size_val;
+                                    if ui
+                                        .add(egui::DragValue::new(&mut size_value).prefix("大小: "))
+                                        .changed()
+                                    {
+                                        if size_value > 0 {
+                                            cache.size =
+                                                Some(crate::model::cpu_tuning::CacheSizeConfig {
+                                                    unit: Some("KiB".to_string()),
+                                                    value: size_value,
+                                                });
+                                        } else {
+                                            cache.size = None;
+                                        }
                                     }
-                                    if ui.selectable_label(*level == 2, "L2").clicked() {
-                                        *level = 2;
-                                    }
-                                    if ui.selectable_label(*level == 3, "L3").clicked() {
-                                        *level = 3;
+                                    if let Some(ref mut s) = cache.size {
+                                        egui::ComboBox::from_id_source(format!(
+                                            "cache_size_unit_{}",
+                                            i
+                                        ))
+                                        .selected_text(s.unit.as_deref().unwrap_or("KiB"))
+                                        .show_ui(
+                                            ui,
+                                            |ui| {
+                                                if ui
+                                                    .selectable_label(
+                                                        s.unit.as_deref().unwrap_or("KiB") == "KiB",
+                                                        "KiB",
+                                                    )
+                                                    .changed()
+                                                {
+                                                    s.unit = Some("KiB".to_string());
+                                                }
+                                                if ui
+                                                    .selectable_label(
+                                                        s.unit.as_deref().unwrap_or("KiB") == "MiB",
+                                                        "MiB",
+                                                    )
+                                                    .changed()
+                                                {
+                                                    s.unit = Some("MiB".to_string());
+                                                }
+                                                if ui
+                                                    .selectable_label(
+                                                        s.unit.as_deref().unwrap_or("KiB") == "GiB",
+                                                        "GiB",
+                                                    )
+                                                    .changed()
+                                                {
+                                                    s.unit = Some("GiB".to_string());
+                                                }
+                                            },
+                                        );
                                     }
                                 });
+                                ui.end_row();
 
-                            // Mode
-                            let mode = cache.mode.get_or_insert_with(|| "emulate".to_string());
-                            egui::ComboBox::from_id_source(format!("cache_mode_{}", i))
-                                .selected_text(mode.as_str())
-                                .width(100.0)
-                                .show_ui(ui, |ui| {
-                                    ui.selectable_value(mode, "emulate".to_string(), "emulate");
-                                    ui.selectable_value(
-                                        mode,
-                                        "passthrough".to_string(),
-                                        "passthrough",
-                                    );
-                                    ui.selectable_value(mode, "disable".to_string(), "disable");
+                                ui.label("缓存行大小:");
+                                ui.horizontal(|ui| {
+                                    let line_val =
+                                        if let Some(ref mut l) = cache.line { l.value } else { 0 };
+                                    let mut line_value = line_val;
+                                    if ui
+                                        .add(
+                                            egui::DragValue::new(&mut line_value)
+                                                .prefix("行大小: "),
+                                        )
+                                        .changed()
+                                    {
+                                        if line_value > 0 {
+                                            cache.line =
+                                                Some(crate::model::cpu_tuning::CacheLineConfig {
+                                                    unit: Some("B".to_string()),
+                                                    value: line_value,
+                                                });
+                                        } else {
+                                            cache.line = None;
+                                        }
+                                    }
+                                    if let Some(ref mut l) = cache.line {
+                                        egui::ComboBox::from_id_source(format!(
+                                            "cache_line_unit_{}",
+                                            i
+                                        ))
+                                        .selected_text(l.unit.as_deref().unwrap_or("B"))
+                                        .show_ui(
+                                            ui,
+                                            |ui| {
+                                                if ui
+                                                    .selectable_label(
+                                                        l.unit.as_deref().unwrap_or("B") == "B",
+                                                        "B",
+                                                    )
+                                                    .changed()
+                                                {
+                                                    l.unit = Some("B".to_string());
+                                                }
+                                                if ui
+                                                    .selectable_label(
+                                                        l.unit.as_deref().unwrap_or("B") == "KiB",
+                                                        "KiB",
+                                                    )
+                                                    .changed()
+                                                {
+                                                    l.unit = Some("KiB".to_string());
+                                                }
+                                            },
+                                        );
+                                    }
                                 });
-
-                            if delete_button(ui, None) {
-                                to_remove = Some(i);
-                            }
+                                ui.end_row();
+                            });
                         });
+                        ui.add_space(5.0);
                     });
                 }
 
@@ -596,6 +774,63 @@ impl CPUPanel {
                                         );
                                         ui.end_row();
                                     });
+
+                                    ui.add_space(5.0);
+
+                                    // Distances 配置
+                                    ui.collapsing("NUMA 距离 (Distances)", |ui| {
+                                        if cell.distances.is_none() {
+                                            cell.distances = Some(crate::model::CPUNUMADistances {
+                                                sibling: None,
+                                            });
+                                        }
+                                        if let Some(ref mut distances) = cell.distances {
+                                            if distances.sibling.is_none() {
+                                                distances.sibling = Some(Vec::new());
+                                            }
+                                            if let Some(ref mut sibling_list) = distances.sibling {
+                                                ui.horizontal(|ui| {
+                                                    if add_button(ui, "➕ 添加距离", colors) {
+                                                        sibling_list.push(
+                                                            crate::model::CPUNUMASibling {
+                                                                id: sibling_list.len() as u32,
+                                                                value: 20,
+                                                            },
+                                                        );
+                                                    }
+                                                });
+
+                                                let mut to_remove = None;
+                                                for (j, sibling) in
+                                                    sibling_list.iter_mut().enumerate()
+                                                {
+                                                    ui.horizontal(|ui| {
+                                                        ui.label(format!("距离 {}:", j + 1));
+                                                        ui.add(
+                                                            egui::Slider::new(
+                                                                &mut sibling.id,
+                                                                0..=255,
+                                                            )
+                                                            .text("target cell id"),
+                                                        );
+                                                        ui.add(
+                                                            egui::Slider::new(
+                                                                &mut sibling.value,
+                                                                10..=40,
+                                                            )
+                                                            .text("value"),
+                                                        );
+                                                        if delete_button(ui, None) {
+                                                            to_remove = Some(j);
+                                                        }
+                                                    });
+                                                }
+                                                if let Some(idx) = to_remove {
+                                                    sibling_list.remove(idx);
+                                                }
+                                            }
+                                        }
+                                    });
                                 });
                             ui.add_space(5.0);
                         });
@@ -616,125 +851,228 @@ impl CPUPanel {
                         });
                     }
                     if let Some(ref mut interconnects) = numa.interconnects {
-                        ui.label("Latency:");
-                        if interconnects.latency.is_none() {
-                            interconnects.latency = Some(Vec::new());
-                        }
-                        if let Some(ref mut latency_list) = interconnects.latency {
-                            ui.horizontal(|ui| {
-                                if add_button(ui, "➕ 添加 Latency", colors) {
-                                    latency_list.push(crate::model::CPUNUMALatency {
-                                        initiator: 0,
-                                        target: 0,
-                                        type_: "latency".to_string(),
-                                        value: 0,
-                                        cache: None,
+                        ui.collapsing("Latency", |ui| {
+                            if interconnects.latency.is_none() {
+                                interconnects.latency = Some(Vec::new());
+                            }
+                            if let Some(ref mut latency_list) = interconnects.latency {
+                                ui.horizontal(|ui| {
+                                    if add_button(ui, "➕ 添加 Latency", colors) {
+                                        latency_list.push(crate::model::CPUNUMALatency {
+                                            initiator: 0,
+                                            target: 0,
+                                            type_: "latency".to_string(),
+                                            value: 0,
+                                            cache: None,
+                                        });
+                                    }
+                                });
+
+                                let mut to_remove = None;
+                                for (i, latency) in latency_list.iter_mut().enumerate() {
+                                    ui.push_id(i, |ui| {
+                                        inner_group(ui, colors, |ui| {
+                                            ui.horizontal(|ui| {
+                                                ui.label(format!("Latency {}:", i + 1));
+                                                if delete_button(ui, None) {
+                                                    to_remove = Some(i);
+                                                }
+                                            });
+
+                                            grid(ui, format!("latency_grid_{}", i), 3, |ui| {
+                                                ui.label("Initiator:");
+                                                ui.add(
+                                                    egui::Slider::new(
+                                                        &mut latency.initiator,
+                                                        0..=255,
+                                                    )
+                                                    .text("node"),
+                                                );
+                                                ui.end_row();
+
+                                                ui.label("Target:");
+                                                ui.add(
+                                                    egui::Slider::new(&mut latency.target, 0..=255)
+                                                        .text("node"),
+                                                );
+                                                ui.end_row();
+
+                                                ui.label("Value:");
+                                                ui.add(
+                                                    egui::Slider::new(
+                                                        &mut latency.value,
+                                                        0..=65535,
+                                                    )
+                                                    .text("ns"),
+                                                );
+                                                ui.end_row();
+
+                                                ui.label("类型:");
+                                                egui::ComboBox::from_id_source(format!(
+                                                    "latency_type_{}",
+                                                    i
+                                                ))
+                                                .selected_text(&latency.type_)
+                                                .show_ui(ui, |ui| {
+                                                    ui.selectable_value(
+                                                        &mut latency.type_,
+                                                        "access".to_string(),
+                                                        "access",
+                                                    );
+                                                    ui.selectable_value(
+                                                        &mut latency.type_,
+                                                        "read".to_string(),
+                                                        "read",
+                                                    );
+                                                    ui.selectable_value(
+                                                        &mut latency.type_,
+                                                        "write".to_string(),
+                                                        "write",
+                                                    );
+                                                });
+                                                ui.end_row();
+
+                                                ui.label("Cache:");
+                                                let cache_val = latency.cache.get_or_insert(0);
+                                                ui.add(
+                                                    egui::Slider::new(cache_val, 0..=3)
+                                                        .text("level"),
+                                                );
+                                                ui.end_row();
+                                            });
+                                        });
+                                        ui.add_space(5.0);
                                     });
                                 }
-                            });
-
-                            let mut to_remove = None;
-                            for (i, latency) in latency_list.iter_mut().enumerate() {
-                                ui.push_id(i, |ui| {
-                                    ui.horizontal(|ui| {
-                                        ui.label(format!("Latency {}:", i + 1));
-                                        ui.add(
-                                            egui::Slider::new(&mut latency.initiator, 0..=255)
-                                                .text("initiator"),
-                                        );
-                                        ui.add(
-                                            egui::Slider::new(&mut latency.target, 0..=255)
-                                                .text("target"),
-                                        );
-                                        ui.add(
-                                            egui::Slider::new(&mut latency.value, 0..=65535)
-                                                .text("value"),
-                                        );
-                                        if delete_button(ui, None) {
-                                            to_remove = Some(i);
-                                        }
-                                    });
-                                });
+                                if let Some(idx) = to_remove {
+                                    latency_list.remove(idx);
+                                }
                             }
-                            if let Some(idx) = to_remove {
-                                latency_list.remove(idx);
-                            }
-                        }
+                        });
 
                         ui.add_space(5.0);
 
-                        ui.label("Bandwidth:");
-                        if interconnects.bandwidth.is_none() {
-                            interconnects.bandwidth = Some(Vec::new());
-                        }
-                        if let Some(ref mut bandwidth_list) = interconnects.bandwidth {
-                            ui.horizontal(|ui| {
-                                if add_button(ui, "➕ 添加 Bandwidth", colors) {
-                                    bandwidth_list.push(crate::model::CPUNUMABandwidth {
-                                        initiator: 0,
-                                        target: 0,
-                                        type_: "bandwidth".to_string(),
-                                        value: 0,
-                                        unit: Some("KiB/s".to_string()),
+                        ui.collapsing("Bandwidth", |ui| {
+                            if interconnects.bandwidth.is_none() {
+                                interconnects.bandwidth = Some(Vec::new());
+                            }
+                            if let Some(ref mut bandwidth_list) = interconnects.bandwidth {
+                                ui.horizontal(|ui| {
+                                    if add_button(ui, "➕ 添加 Bandwidth", colors) {
+                                        bandwidth_list.push(crate::model::CPUNUMABandwidth {
+                                            initiator: 0,
+                                            target: 0,
+                                            type_: "bandwidth".to_string(),
+                                            value: 0,
+                                            unit: Some("KiB/s".to_string()),
+                                        });
+                                    }
+                                });
+
+                                let mut to_remove = None;
+                                for (i, bandwidth) in bandwidth_list.iter_mut().enumerate() {
+                                    ui.push_id(i, |ui| {
+                                        inner_group(ui, colors, |ui| {
+                                            ui.horizontal(|ui| {
+                                                ui.label(format!("Bandwidth {}:", i + 1));
+                                                if delete_button(ui, None) {
+                                                    to_remove = Some(i);
+                                                }
+                                            });
+
+                                            grid(ui, format!("bandwidth_grid_{}", i), 3, |ui| {
+                                                ui.label("Initiator:");
+                                                ui.add(
+                                                    egui::Slider::new(
+                                                        &mut bandwidth.initiator,
+                                                        0..=255,
+                                                    )
+                                                    .text("node"),
+                                                );
+                                                ui.end_row();
+
+                                                ui.label("Target:");
+                                                ui.add(
+                                                    egui::Slider::new(
+                                                        &mut bandwidth.target,
+                                                        0..=255,
+                                                    )
+                                                    .text("node"),
+                                                );
+                                                ui.end_row();
+
+                                                ui.label("Value:");
+                                                ui.add(
+                                                    egui::Slider::new(
+                                                        &mut bandwidth.value,
+                                                        0..=65535,
+                                                    )
+                                                    .text("value"),
+                                                );
+                                                ui.end_row();
+
+                                                ui.label("类型:");
+                                                egui::ComboBox::from_id_source(format!(
+                                                    "bandwidth_type_{}",
+                                                    i
+                                                ))
+                                                .selected_text(&bandwidth.type_)
+                                                .show_ui(ui, |ui| {
+                                                    ui.selectable_value(
+                                                        &mut bandwidth.type_,
+                                                        "access".to_string(),
+                                                        "access",
+                                                    );
+                                                    ui.selectable_value(
+                                                        &mut bandwidth.type_,
+                                                        "read".to_string(),
+                                                        "read",
+                                                    );
+                                                    ui.selectable_value(
+                                                        &mut bandwidth.type_,
+                                                        "write".to_string(),
+                                                        "write",
+                                                    );
+                                                });
+                                                ui.end_row();
+
+                                                ui.label("单位:");
+                                                let unit = bandwidth
+                                                    .unit
+                                                    .get_or_insert_with(|| "KiB/s".to_string());
+                                                egui::ComboBox::from_id_source(format!(
+                                                    "bandwidth_unit_{}",
+                                                    i
+                                                ))
+                                                .selected_text(unit.as_str())
+                                                .show_ui(ui, |ui| {
+                                                    ui.selectable_value(
+                                                        unit,
+                                                        "KiB/s".to_string(),
+                                                        "KiB/s",
+                                                    );
+                                                    ui.selectable_value(
+                                                        unit,
+                                                        "MiB/s".to_string(),
+                                                        "MiB/s",
+                                                    );
+                                                    ui.selectable_value(
+                                                        unit,
+                                                        "GiB/s".to_string(),
+                                                        "GiB/s",
+                                                    );
+                                                });
+                                                ui.end_row();
+                                            });
+                                        });
+                                        ui.add_space(5.0);
                                     });
                                 }
-                            });
-
-                            let mut to_remove = None;
-                            for (i, bandwidth) in bandwidth_list.iter_mut().enumerate() {
-                                ui.push_id(i, |ui| {
-                                    ui.horizontal(|ui| {
-                                        ui.label(format!("Bandwidth {}:", i + 1));
-                                        ui.add(
-                                            egui::Slider::new(&mut bandwidth.initiator, 0..=255)
-                                                .text("initiator"),
-                                        );
-                                        ui.add(
-                                            egui::Slider::new(&mut bandwidth.target, 0..=255)
-                                                .text("target"),
-                                        );
-                                        ui.add(
-                                            egui::Slider::new(&mut bandwidth.value, 0..=65535)
-                                                .text("value"),
-                                        );
-                                        let unit = bandwidth
-                                            .unit
-                                            .get_or_insert_with(|| "KiB/s".to_string());
-                                        egui::ComboBox::from_id_source(format!(
-                                            "bandwidth_unit_{}",
-                                            i
-                                        ))
-                                        .selected_text(unit.as_str())
-                                        .show_ui(
-                                            ui,
-                                            |ui| {
-                                                ui.selectable_value(
-                                                    unit,
-                                                    "KiB/s".to_string(),
-                                                    "KiB/s",
-                                                );
-                                                ui.selectable_value(
-                                                    unit,
-                                                    "MiB/s".to_string(),
-                                                    "MiB/s",
-                                                );
-                                                ui.selectable_value(
-                                                    unit,
-                                                    "GiB/s".to_string(),
-                                                    "GiB/s",
-                                                );
-                                            },
-                                        );
-                                        if delete_button(ui, None) {
-                                            to_remove = Some(i);
-                                        }
-                                    });
-                                });
+                                if let Some(idx) = to_remove {
+                                    bandwidth_list.remove(idx);
+                                }
                             }
-                            if let Some(idx) = to_remove {
-                                bandwidth_list.remove(idx);
-                            }
-                        }
+                        });
                     }
                 });
             }

@@ -164,8 +164,7 @@ impl Default for HyperVConfig {
 }
 
 /// KVM 特性配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct KvmFeaturesConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hidden: Option<FeatureState>,
@@ -179,17 +178,14 @@ pub struct KvmFeaturesConfig {
     pub dirty_ring: Option<DirtyRingConfig>,
 }
 
-
 /// Xen 特性配置
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[derive(Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct XenFeaturesConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub e820_host: Option<FeatureState>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub passthrough: Option<PassthroughConfig>,
 }
-
 
 /// 特性状态配置
 #[derive(Debug, Clone, Serialize, Deserialize)]

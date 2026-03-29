@@ -104,6 +104,32 @@ pub struct CacheConfig {
     pub level: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub associativity: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub policy: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size: Option<CacheSizeConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub line: Option<CacheLineConfig>,
+}
+
+/// CPU Cache 大小配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CacheSizeConfig {
+    #[serde(rename = "@unit", skip_serializing_if = "Option::is_none")]
+    pub unit: Option<String>,
+    #[serde(rename = "$value")]
+    pub value: u32,
+}
+
+/// CPU Cache 行大小配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CacheLineConfig {
+    #[serde(rename = "@unit", skip_serializing_if = "Option::is_none")]
+    pub unit: Option<String>,
+    #[serde(rename = "$value")]
+    pub value: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

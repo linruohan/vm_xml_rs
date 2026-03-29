@@ -1,4 +1,4 @@
-mod advanced;
+pub mod advanced;
 mod cpu_panel;
 mod devices_panel;
 mod general_panel;

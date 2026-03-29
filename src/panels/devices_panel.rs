@@ -3453,7 +3453,7 @@ impl DevicesPanel {
                                     // SCSI 设备配置
                                     if hostdev.device_type == "scsi" {
                                         // 检查是否有 protocol 属性（iSCSI 场景）
-                                        let is_iscsi = source.protocol.as_ref().map_or(false, |p| p == "iscsi");
+                                        let is_iscsi = source.protocol.as_ref().is_some_and(|p| p == "iscsi");
 
                                         ui.add_space(5.0);
                                         ui.horizontal(|ui| {
@@ -3824,6 +3824,108 @@ impl DevicesPanel {
                                         ui.end_row();
                                     });
                                 }
+                            });
+
+                            // ID 映射配置
+                            ui.collapsing("ID 映射 (ID Map)", |ui| {
+                                if fs.idmap.is_none() {
+                                    fs.idmap = Some(crate::model::IdMapConfig {
+                                        uid: None,
+                                        gid: None,
+                                    });
+                                }
+                                if let Some(ref mut idmap) = fs.idmap {
+                                    let mut has_uid = idmap.uid.is_some();
+                                    if checkbox(ui, &mut has_uid, "启用 UID 映射") {
+                                        if has_uid {
+                                            idmap.uid = Some(crate::model::IdMapEntry {
+                                                start: 0,
+                                                target: 0,
+                                                count: 1,
+                                            });
+                                        } else {
+                                            idmap.uid = None;
+                                        }
+                                    }
+                                    if let Some(ref mut uid) = idmap.uid {
+                                        grid(ui, format!("fs_uid_grid_{}", i), 3, |ui| {
+                                            ui.label("Start:");
+                                            ui.add(egui::DragValue::new(&mut uid.start));
+                                            ui.end_row();
+                                            ui.label("Target:");
+                                            ui.add(egui::DragValue::new(&mut uid.target));
+                                            ui.end_row();
+                                            ui.label("Count:");
+                                            ui.add(egui::DragValue::new(&mut uid.count));
+                                            ui.end_row();
+                                        });
+                                    }
+
+                                    ui.add_space(5.0);
+
+                                    let mut has_gid = idmap.gid.is_some();
+                                    if checkbox(ui, &mut has_gid, "启用 GID 映射") {
+                                        if has_gid {
+                                            idmap.gid = Some(crate::model::IdMapEntry {
+                                                start: 0,
+                                                target: 0,
+                                                count: 1,
+                                            });
+                                        } else {
+                                            idmap.gid = None;
+                                        }
+                                    }
+                                    if let Some(ref mut gid) = idmap.gid {
+                                        grid(ui, format!("fs_gid_grid_{}", i), 3, |ui| {
+                                            ui.label("Start:");
+                                            ui.add(egui::DragValue::new(&mut gid.start));
+                                            ui.end_row();
+                                            ui.label("Target:");
+                                            ui.add(egui::DragValue::new(&mut gid.target));
+                                            ui.end_row();
+                                            ui.label("Count:");
+                                            ui.add(egui::DragValue::new(&mut gid.count));
+                                            ui.end_row();
+                                        });
+                                    }
+                                }
+                            });
+
+                            // 只读和空间限制
+                            ui.collapsing("只读和空间限制", |ui| {
+                                grid(ui, format!("fs_limit_grid_{}", i), 2, |ui| {
+                                    // 只读
+                                    ui.label("只读:");
+                                    let mut readonly = fs.readonly.is_some();
+                                    if checkbox(ui, &mut readonly, "启用只读") {
+                                        if readonly {
+                                            fs.readonly = Some(());
+                                        } else {
+                                            fs.readonly = None;
+                                        }
+                                    }
+                                    ui.end_row();
+
+                                    // 空间硬限制
+                                    ui.label("空间硬限制 (bytes):");
+                                    let hard_limit = fs.space_hard_limit.get_or_insert(0);
+                                    if ui.add(egui::DragValue::new(hard_limit).prefix("硬限制：")).changed()
+                                        && *hard_limit == 0
+                                    {
+                                        fs.space_hard_limit = None;
+                                    }
+                                    ui.end_row();
+
+                                    // 空间软限制
+                                    ui.label("空间软限制 (bytes):");
+                                    let soft_limit = fs.space_soft_limit.get_or_insert(0);
+                                    if ui.add(egui::DragValue::new(soft_limit).prefix("软限制：")).changed()
+                                        && *soft_limit == 0
+                                    {
+                                        fs.space_soft_limit = None;
+                                    }
+                                    ui.end_row();
+                                });
                             });
                         });
                         ui.add_space(5.0);

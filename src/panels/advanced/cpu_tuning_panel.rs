@@ -398,6 +398,10 @@ impl CPUTuningPanel {
                                                     cache_list.push(crate::model::CacheConfig {
                                                         level: Some(3),
                                                         mode: Some("emulate".to_string()),
+                                                        associativity: None,
+                                                        policy: None,
+                                                        size: None,
+                                                        line: None,
                                                     });
                                                 }
                                             });
