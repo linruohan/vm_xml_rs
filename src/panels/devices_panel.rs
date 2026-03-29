@@ -11,59 +11,71 @@ pub struct DevicesPanel;
 
 impl DevicesPanel {
     /// 显示设备配置面板
-    /// 使用流式布局，卡片自动换行排列
+    /// 使用流式布局，卡片自动换行排列，左对齐
     pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔌", "设备配置");
 
-        // 卡片最小宽度和间距
-        let card_min_width = 320.0;
+        // 卡片宽度和间距配置
+        let card_width = 320.0;
         let spacing = 8.0;
 
-        // 使用水平布局实现流式换行
-        ui.horizontal_wrapped(|ui| {
+        // 使用 horizontal_wrapped 实现流式布局，左对齐
+        ui.with_layout(egui::Layout::left_to_right(egui::Align::TOP).with_main_wrap(true), |ui| {
             ui.spacing_mut().item_spacing = egui::vec2(spacing, spacing);
 
-            // 图形显示
-            ui.allocate_space(egui::vec2(card_min_width, 0.0));
-            let rect = ui.available_rect_before_wrap();
-            ui.allocate_ui_at_rect(rect, |ui| {
-                Self::show_graphics(ui, config, colors);
-            });
+            // 图形显示卡片
+            ui.allocate_ui_with_layout(
+                egui::vec2(card_width, 0.0),
+                egui::Layout::top_down(egui::Align::LEFT),
+                |ui| {
+                    Self::show_graphics(ui, config, colors);
+                },
+            );
 
-            // 视频设备
-            ui.allocate_space(egui::vec2(card_min_width, 0.0));
-            let rect = ui.available_rect_before_wrap();
-            ui.allocate_ui_at_rect(rect, |ui| {
-                Self::show_video(ui, config, colors);
-            });
+            // 视频设备卡片
+            ui.allocate_ui_with_layout(
+                egui::vec2(card_width, 0.0),
+                egui::Layout::top_down(egui::Align::LEFT),
+                |ui| {
+                    Self::show_video(ui, config, colors);
+                },
+            );
 
-            // 磁盘设备
-            ui.allocate_space(egui::vec2(card_min_width, 0.0));
-            let rect = ui.available_rect_before_wrap();
-            ui.allocate_ui_at_rect(rect, |ui| {
-                Self::show_disks(ui, config, colors);
-            });
+            // 磁盘设备卡片
+            ui.allocate_ui_with_layout(
+                egui::vec2(card_width, 0.0),
+                egui::Layout::top_down(egui::Align::LEFT),
+                |ui| {
+                    Self::show_disks(ui, config, colors);
+                },
+            );
 
-            // 网络接口
-            ui.allocate_space(egui::vec2(card_min_width, 0.0));
-            let rect = ui.available_rect_before_wrap();
-            ui.allocate_ui_at_rect(rect, |ui| {
-                Self::show_network(ui, config, colors);
-            });
+            // 网络接口卡片
+            ui.allocate_ui_with_layout(
+                egui::vec2(card_width, 0.0),
+                egui::Layout::top_down(egui::Align::LEFT),
+                |ui| {
+                    Self::show_network(ui, config, colors);
+                },
+            );
 
-            // 输入设备
-            ui.allocate_space(egui::vec2(card_min_width, 0.0));
-            let rect = ui.available_rect_before_wrap();
-            ui.allocate_ui_at_rect(rect, |ui| {
-                Self::show_input(ui, config, colors);
-            });
+            // 输入设备卡片
+            ui.allocate_ui_with_layout(
+                egui::vec2(card_width, 0.0),
+                egui::Layout::top_down(egui::Align::LEFT),
+                |ui| {
+                    Self::show_input(ui, config, colors);
+                },
+            );
 
-            // TPM 设备
-            ui.allocate_space(egui::vec2(card_min_width, 0.0));
-            let rect = ui.available_rect_before_wrap();
-            ui.allocate_ui_at_rect(rect, |ui| {
-                Self::show_tpm(ui, config, colors);
-            });
+            // TPM 设备卡片
+            ui.allocate_ui_with_layout(
+                egui::vec2(card_width, 0.0),
+                egui::Layout::top_down(egui::Align::LEFT),
+                |ui| {
+                    Self::show_tpm(ui, config, colors);
+                },
+            );
         });
     }
 
