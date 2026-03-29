@@ -11,60 +11,60 @@ pub struct DevicesPanel;
 
 impl DevicesPanel {
     /// 显示设备配置面板
-    /// 使用响应式布局，根据窗口宽度自动计算每行卡片数量
+    /// 使用流式布局，卡片自动换行排列
     pub fn show(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
         panel_header(ui, "🔌", "设备配置");
 
-        // 获取可用宽度，计算每行可以放置的卡片数量
-        // 假设每个卡片最小宽度为 350，间距为 8
-        let available_width = ui.available_width();
-        let card_min_width = 350.0;
+        // 卡片最小宽度和间距
+        let card_min_width = 320.0;
         let spacing = 8.0;
-        let cards_per_row = ((available_width + spacing) / (card_min_width + spacing)).max(1.0) as usize;
 
-        // 定义所有卡片渲染函数
-        let cards: Vec<Box<dyn FnOnce(&mut egui::Ui)>> = vec![
-            Box::new(|ui| Self::show_graphics(ui, config, colors)),
-            Box::new(|ui| Self::show_video(ui, config, colors)),
-            Box::new(|ui| Self::show_disks(ui, config, colors)),
-            Box::new(|ui| Self::show_network(ui, config, colors)),
-            Box::new(|ui| Self::show_input(ui, config, colors)),
-            Box::new(|ui| Self::show_tpm(ui, config, colors)),
-        ];
+        // 使用水平布局实现流式换行
+        ui.horizontal_wrapped(|ui| {
+            ui.spacing_mut().item_spacing = egui::vec2(spacing, spacing);
 
-        // 按行渲染卡片
-        let mut card_iter = cards.into_iter();
-        let mut first_row = true;
-
-        while let Some(first_card) = card_iter.next() {
-            if !first_row {
-                ui.add_space(8.0);
-            }
-            first_row = false;
-
-            ui.horizontal(|ui| {
-                // 计算每列的可用宽度
-                let total_spacing = spacing * (cards_per_row.saturating_sub(1) as f32);
-                let column_width = (available_width - total_spacing) / (cards_per_row as f32);
-
-                // 渲染第一列
-                ui.vertical(|ui| {
-                    ui.set_width(column_width);
-                    first_card(ui);
-                });
-
-                // 渲染该行剩余的列
-                for _ in 1..cards_per_row {
-                    if let Some(card_fn) = card_iter.next() {
-                        ui.add_space(spacing);
-                        ui.vertical(|ui| {
-                            ui.set_width(column_width);
-                            card_fn(ui);
-                        });
-                    }
-                }
+            // 图形显示
+            ui.allocate_space(egui::vec2(card_min_width, 0.0));
+            let rect = ui.available_rect_before_wrap();
+            ui.allocate_ui_at_rect(rect, |ui| {
+                Self::show_graphics(ui, config, colors);
             });
-        }
+
+            // 视频设备
+            ui.allocate_space(egui::vec2(card_min_width, 0.0));
+            let rect = ui.available_rect_before_wrap();
+            ui.allocate_ui_at_rect(rect, |ui| {
+                Self::show_video(ui, config, colors);
+            });
+
+            // 磁盘设备
+            ui.allocate_space(egui::vec2(card_min_width, 0.0));
+            let rect = ui.available_rect_before_wrap();
+            ui.allocate_ui_at_rect(rect, |ui| {
+                Self::show_disks(ui, config, colors);
+            });
+
+            // 网络接口
+            ui.allocate_space(egui::vec2(card_min_width, 0.0));
+            let rect = ui.available_rect_before_wrap();
+            ui.allocate_ui_at_rect(rect, |ui| {
+                Self::show_network(ui, config, colors);
+            });
+
+            // 输入设备
+            ui.allocate_space(egui::vec2(card_min_width, 0.0));
+            let rect = ui.available_rect_before_wrap();
+            ui.allocate_ui_at_rect(rect, |ui| {
+                Self::show_input(ui, config, colors);
+            });
+
+            // TPM 设备
+            ui.allocate_space(egui::vec2(card_min_width, 0.0));
+            let rect = ui.available_rect_before_wrap();
+            ui.allocate_ui_at_rect(rect, |ui| {
+                Self::show_tpm(ui, config, colors);
+            });
+        });
     }
 
     fn show_graphics(ui: &mut egui::Ui, config: &mut VMConfig, colors: &ThemeColors) {
