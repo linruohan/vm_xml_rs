@@ -24,7 +24,8 @@ pub use controller::{ControllerConfig, ControllerDriver, ControllerHotplug};
 #[allow(unused_imports)]
 pub use disk::{
     BlockIOConfig, DiskConfig, DiskDriver, DiskSource, DiskTarget, EncryptionConfig,
-    EncryptionSecret, GeometryConfig, IOtuneConfig, ThrottleFilter,
+    EncryptionSecret, GeometryConfig, HistogramBin, IOtuneConfig, IOtuneMaxConfig,
+    LatencyHistogramConfig, MetadataCacheConfig, StatisticInterval, ThrottleFilter,
 };
 #[allow(unused_imports)]
 pub use filesystem::{
@@ -32,7 +33,11 @@ pub use filesystem::{
     FilesystemSandbox, FilesystemSource, FilesystemTarget, FilesystemThreadPool,
 };
 #[allow(unused_imports)]
-pub use graphics_video::{GraphicsConfig, VideoConfig, VideoModel};
+pub use graphics_video::{
+    AccelerationConfig, ChannelPolicyConfig, ClipboardConfig, FileTransferConfig, GlConfig,
+    GraphicsAudioConfig, GraphicsConfig, ImageConfig, ListenConfig, MouseConfig, ResolutionConfig,
+    StreamingConfig, VideoConfig, VideoDriverConfig, VideoModel,
+};
 #[allow(unused_imports)]
 pub use hostdev::{
     HostdevACPI, HostdevAdapter, HostdevAddress, HostdevAuth, HostdevConfig, HostdevDriver,
@@ -42,7 +47,8 @@ pub use hostdev::{
 #[allow(unused_imports)]
 pub use input_sound_tpm::{
     InputConfig, InputDriver, InputSource, MemballoonConfig, MemballoonStats, RngBackend,
-    RngConfig, RngRate, RngSize, SoundCodec, SoundConfig, TPMBackend, TPMConfig, WatchdogConfig,
+    RngConfig, RngRate, RngSize, SoundAudio, SoundCodec, SoundConfig, TPMBackend, TPMConfig,
+    WatchdogConfig,
 };
 #[allow(unused_imports)]
 pub use lease::{LeaseConfig, LeaseTarget};
@@ -54,7 +60,12 @@ pub use misc_devices::{
     ShmemConfig, ShmemModel, ShmemServer, SizeConfig, VsockConfig, VsockSource,
 };
 #[allow(unused_imports)]
-pub use network::{InterfaceConfig, InterfaceModel, InterfaceSource, MacAddress};
+pub use network::{
+    AcpiConfig, BackendConfig, BandwidthConfig, DirectionConfig, DriverConfig, DriverGuestOffload,
+    DriverHostOffload, GuestConfig, InterfaceConfig, InterfaceModel, InterfaceSource, IpConfig,
+    LinkConfig, MacAddress, PortConfig, PortForwardConfig, PortRangeConfig, RomConfig, TuneConfig,
+    VirtualPortConfig, VirtualPortParameters, VlanConfig, VlanTag,
+};
 #[allow(unused_imports)]
 pub use nvram::DeviceNVRAMConfig;
 #[allow(unused_imports)]
@@ -63,7 +74,8 @@ pub use redirdev::{
 };
 #[allow(unused_imports)]
 pub use serial_console::{
-    ChannelConfig, ChannelTarget, ConsoleConfig, ParallelConfig, SerialConfig,
+    ChannelConfig, ChannelTarget, ConsoleConfig, ConsoleLog, ConsoleSource, ParallelConfig,
+    ParallelSource, SerialConfig, SerialLog, SerialSource,
 };
 #[allow(unused_imports)]
 pub use smartcard::{SmartcardConfig, SmartcardProtocol, SmartcardSource};

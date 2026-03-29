@@ -44,8 +44,25 @@ pub struct InputDriver {
 pub struct SoundConfig {
     #[serde(rename = "@model")]
     pub model: String,
+    #[serde(rename = "@multichannel", skip_serializing_if = "Option::is_none")]
+    pub multichannel: Option<String>,
+    #[serde(rename = "@streams", skip_serializing_if = "Option::is_none")]
+    pub streams: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub codec: Option<SoundCodec>,
+    pub codec: Option<Vec<SoundCodec>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub audio: Option<Vec<SoundAudio>>,
+}
+
+/// 声音设备音频后端映射
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SoundAudio {
+    #[serde(rename = "@id")]
+    pub id: u32,
+    #[serde(rename = "@type")]
+    pub audio_type: String,
+    #[serde(rename = "@server", skip_serializing_if = "Option::is_none")]
+    pub server: Option<String>,
 }
 
 /// 声音设备编解码器配置
@@ -57,6 +74,10 @@ pub struct SoundCodec {
     pub input_type: Option<String>,
     #[serde(rename = "@output-type", skip_serializing_if = "Option::is_none")]
     pub output_type: Option<String>,
+    #[serde(rename = "@microphones", skip_serializing_if = "Option::is_none")]
+    pub microphones: Option<u32>,
+    #[serde(rename = "@recordpipeline", skip_serializing_if = "Option::is_none")]
+    pub record_pipeline: Option<String>,
 }
 
 // ChannelConfig 和 ChannelTarget 已移至 common.rs

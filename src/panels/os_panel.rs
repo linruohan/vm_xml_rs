@@ -1,6 +1,6 @@
 use crate::{
     model::{
-        os::{BIOSConfig, NVRAMConfig},
+        os::{BIOSConfig, NVRAMConfig, VarStoreConfig},
         BootConfig, BootMenuConfig, LoaderConfig, VMConfig,
     },
     panels::utils::{ThemeColors, *},
@@ -168,6 +168,35 @@ impl OSPanel {
                             ui.end_row();
                         });
                     }
+                }
+
+                ui.add_space(5.0);
+
+                // Varstore 配置（替代 NVRAM 的简化方式）
+                let mut has_varstore = os.varstore.is_some();
+                if checkbox(ui, &mut has_varstore, "启用 Varstore") {
+                    if has_varstore {
+                        os.varstore = Some(VarStoreConfig {
+                            path: "/var/lib/libvirt/nvram/guest_VARS.fd".to_string(),
+                            template: Some("/usr/share/OVMF/OVMF_VARS.fd".to_string()),
+                        });
+                    } else {
+                        os.varstore = None;
+                    }
+                }
+
+                if let Some(ref mut varstore) = os.varstore {
+                    ui.add_space(5.0);
+                    grid(ui, "varstore_grid", 2, |ui| {
+                        ui.label("Varstore 路径:");
+                        ui.text_edit_singleline(&mut varstore.path);
+                        ui.end_row();
+
+                        ui.label("模板路径:");
+                        let template = varstore.template.get_or_insert_with(|| "".to_string());
+                        ui.text_edit_singleline(template);
+                        ui.end_row();
+                    });
                 }
             }
         });

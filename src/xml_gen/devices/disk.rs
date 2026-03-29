@@ -4,7 +4,7 @@ use quick_xml::{
 };
 
 use super::super::general::write_element;
-use crate::model::devices::DiskConfig;
+use crate::model::{devices::DiskConfig, disk::MetadataCacheConfig};
 
 /// 写入 Disk 设备
 pub fn write_disks<W: std::io::Write>(
@@ -33,6 +33,12 @@ pub fn write_disks<W: std::io::Write>(
             if let Some(ref cache) = driver.cache {
                 driver_elem.push_attribute(("cache", cache.as_str()));
             }
+            if let Some(ref error_policy) = driver.error_policy {
+                driver_elem.push_attribute(("error_policy", error_policy.as_str()));
+            }
+            if let Some(ref rerror_policy) = driver.rerror_policy {
+                driver_elem.push_attribute(("rerror_policy", rerror_policy.as_str()));
+            }
             if let Some(ref io) = driver.io {
                 driver_elem.push_attribute(("io", io.as_str()));
             }
@@ -41,6 +47,15 @@ pub fn write_disks<W: std::io::Write>(
             }
             if let Some(ref event_idx) = driver.event_idx {
                 driver_elem.push_attribute(("event_idx", event_idx.as_str()));
+            }
+            if let Some(ref copy_on_read) = driver.copy_on_read {
+                driver_elem.push_attribute(("copy_on_read", copy_on_read.as_str()));
+            }
+            if let Some(ref discard) = driver.discard {
+                driver_elem.push_attribute(("discard", discard.as_str()));
+            }
+            if let Some(ref detect_zeroes) = driver.detect_zeroes {
+                driver_elem.push_attribute(("detect_zeroes", detect_zeroes.as_str()));
             }
             if let Some(queues) = driver.queues {
                 driver_elem.push_attribute(("queues", queues.to_string().as_str()));
@@ -55,20 +70,30 @@ pub fn write_disks<W: std::io::Write>(
                 driver_elem.push_attribute(("discard_no_unref", discard_no_unref.as_str()));
             }
 
-            // 写入 iothreads 子元素
-            if let Some(ref iothreads) = driver.iothreads {
+            // 检查是否有子元素需要写入
+            let has_iothreads = driver.iothreads.is_some();
+            let has_statistics = driver.statistics.is_some();
+            let has_latency_histogram = driver.latency_histogram.is_some();
+            let has_metadata_cache = driver.metadata_cache.is_some();
+
+            if has_iothreads || has_statistics || has_latency_histogram || has_metadata_cache {
                 writer.write_event(Event::Start(driver_elem)).map_err(|e| e.to_string())?;
 
-                let iothreads_elem = BytesStart::new("iothreads");
-                writer.write_event(Event::Start(iothreads_elem)).map_err(|e| e.to_string())?;
-                for iothread in iothreads {
-                    let mut iothread_elem = BytesStart::new("iothread");
-                    iothread_elem.push_attribute(("id", iothread.id.to_string().as_str()));
-                    writer.write_event(Event::Empty(iothread_elem)).map_err(|e| e.to_string())?;
+                // 写入 iothreads 子元素
+                if let Some(ref iothreads) = driver.iothreads {
+                    let iothreads_elem = BytesStart::new("iothreads");
+                    writer.write_event(Event::Start(iothreads_elem)).map_err(|e| e.to_string())?;
+                    for iothread in iothreads {
+                        let mut iothread_elem = BytesStart::new("iothread");
+                        iothread_elem.push_attribute(("id", iothread.id.to_string().as_str()));
+                        writer
+                            .write_event(Event::Empty(iothread_elem))
+                            .map_err(|e| e.to_string())?;
+                    }
+                    writer
+                        .write_event(Event::End(BytesEnd::new("iothreads")))
+                        .map_err(|e| e.to_string())?;
                 }
-                writer
-                    .write_event(Event::End(BytesEnd::new("iothreads")))
-                    .map_err(|e| e.to_string())?;
 
                 // 写入 statistics 子元素
                 if let Some(ref statistics) = driver.statistics {
@@ -106,45 +131,9 @@ pub fn write_disks<W: std::io::Write>(
                     }
                 }
 
-                writer
-                    .write_event(Event::End(BytesEnd::new("driver")))
-                    .map_err(|e| e.to_string())?;
-            } else if driver.statistics.is_some() || driver.latency_histogram.is_some() {
-                // 没有 iothreads 但有 statistics 或 latency_histogram
-                writer.write_event(Event::Start(driver_elem)).map_err(|e| e.to_string())?;
-
-                if let Some(ref statistics) = driver.statistics {
-                    let statistics_elem = BytesStart::new("statistics");
-                    writer.write_event(Event::Start(statistics_elem)).map_err(|e| e.to_string())?;
-
-                    if let Some(ref statistic_list) = statistics.statistic {
-                        for statistic in statistic_list {
-                            let mut statistic_elem = BytesStart::new("statistic");
-                            statistic_elem.push_attribute((
-                                "interval",
-                                statistic.interval.to_string().as_str(),
-                            ));
-                            writer
-                                .write_event(Event::Empty(statistic_elem))
-                                .map_err(|e| e.to_string())?;
-                        }
-                    }
-
-                    if let Some(ref latency_histogram_list) = statistics.latency_histogram {
-                        for histogram in latency_histogram_list {
-                            write_latency_histogram(writer, histogram)?;
-                        }
-                    }
-
-                    writer
-                        .write_event(Event::End(BytesEnd::new("statistics")))
-                        .map_err(|e| e.to_string())?;
-                }
-
-                if let Some(ref latency_histogram_list) = driver.latency_histogram {
-                    for histogram in latency_histogram_list {
-                        write_latency_histogram(writer, histogram)?;
-                    }
+                // 写入 metadata_cache 子元素
+                if let Some(ref metadata_cache) = driver.metadata_cache {
+                    write_metadata_cache(writer, metadata_cache)?;
                 }
 
                 writer
@@ -338,6 +327,76 @@ pub fn write_disks<W: std::io::Write>(
             if let Some(write_iops_sec) = iotune.write_iops_sec {
                 write_element(writer, "write_iops_sec", &write_iops_sec.to_string())?;
             }
+            if let Some(size_iops_sec) = iotune.size_iops_sec {
+                write_element(writer, "size_iops_sec", &size_iops_sec.to_string())?;
+            }
+            if let Some(ref group_name) = iotune.group_name {
+                write_element(writer, "group_name", group_name)?;
+            }
+
+            // 写入 max 突发配置
+            if let Some(ref max) = iotune.max {
+                if let Some(total_bytes_sec_max) = max.total_bytes_sec_max {
+                    write_element(writer, "total_bytes_sec_max", &total_bytes_sec_max.to_string())?;
+                }
+                if let Some(read_bytes_sec_max) = max.read_bytes_sec_max {
+                    write_element(writer, "read_bytes_sec_max", &read_bytes_sec_max.to_string())?;
+                }
+                if let Some(write_bytes_sec_max) = max.write_bytes_sec_max {
+                    write_element(writer, "write_bytes_sec_max", &write_bytes_sec_max.to_string())?;
+                }
+                if let Some(total_iops_sec_max) = max.total_iops_sec_max {
+                    write_element(writer, "total_iops_sec_max", &total_iops_sec_max.to_string())?;
+                }
+                if let Some(read_iops_sec_max) = max.read_iops_sec_max {
+                    write_element(writer, "read_iops_sec_max", &read_iops_sec_max.to_string())?;
+                }
+                if let Some(write_iops_sec_max) = max.write_iops_sec_max {
+                    write_element(writer, "write_iops_sec_max", &write_iops_sec_max.to_string())?;
+                }
+                if let Some(total_bytes_sec_max_length) = max.total_bytes_sec_max_length {
+                    write_element(
+                        writer,
+                        "total_bytes_sec_max_length",
+                        &total_bytes_sec_max_length.to_string(),
+                    )?;
+                }
+                if let Some(read_bytes_sec_max_length) = max.read_bytes_sec_max_length {
+                    write_element(
+                        writer,
+                        "read_bytes_sec_max_length",
+                        &read_bytes_sec_max_length.to_string(),
+                    )?;
+                }
+                if let Some(write_bytes_sec_max_length) = max.write_bytes_sec_max_length {
+                    write_element(
+                        writer,
+                        "write_bytes_sec_max_length",
+                        &write_bytes_sec_max_length.to_string(),
+                    )?;
+                }
+                if let Some(total_iops_sec_max_length) = max.total_iops_sec_max_length {
+                    write_element(
+                        writer,
+                        "total_iops_sec_max_length",
+                        &total_iops_sec_max_length.to_string(),
+                    )?;
+                }
+                if let Some(read_iops_sec_max_length) = max.read_iops_sec_max_length {
+                    write_element(
+                        writer,
+                        "read_iops_sec_max_length",
+                        &read_iops_sec_max_length.to_string(),
+                    )?;
+                }
+                if let Some(write_iops_sec_max_length) = max.write_iops_sec_max_length {
+                    write_element(
+                        writer,
+                        "write_iops_sec_max_length",
+                        &write_iops_sec_max_length.to_string(),
+                    )?;
+                }
+            }
 
             writer.write_event(Event::End(BytesEnd::new("iotune"))).map_err(|e| e.to_string())?;
         }
@@ -438,5 +497,29 @@ fn write_latency_histogram<W: std::io::Write>(
     writer
         .write_event(Event::End(BytesEnd::new("latency-histogram")))
         .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// 写入 metadata_cache 元素
+fn write_metadata_cache<W: std::io::Write>(
+    writer: &mut Writer<W>,
+    config: &MetadataCacheConfig,
+) -> Result<(), String> {
+    let metadata_cache_elem = BytesStart::new("metadata_cache");
+    writer.write_event(Event::Start(metadata_cache_elem)).map_err(|e| e.to_string())?;
+
+    if let Some(ref max_size) = config.max_size {
+        let mut max_size_elem = BytesStart::new("max_size");
+        if let Some(ref unit) = max_size.unit {
+            max_size_elem.push_attribute(("unit", unit.as_str()));
+        }
+        writer.write_event(Event::Start(max_size_elem)).map_err(|e| e.to_string())?;
+        writer
+            .write_event(Event::Text(BytesText::new(max_size.value.to_string().as_str())))
+            .map_err(|e| e.to_string())?;
+        writer.write_event(Event::End(BytesEnd::new("max_size"))).map_err(|e| e.to_string())?;
+    }
+
+    writer.write_event(Event::End(BytesEnd::new("metadata_cache"))).map_err(|e| e.to_string())?;
     Ok(())
 }

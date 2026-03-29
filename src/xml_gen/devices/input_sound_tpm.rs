@@ -100,19 +100,46 @@ pub fn write_sounds<W: std::io::Write>(
     for sound in sound_list {
         let mut sound_elem = BytesStart::new("sound");
         sound_elem.push_attribute(("model", sound.model.as_str()));
+        if let Some(ref multichannel) = sound.multichannel {
+            sound_elem.push_attribute(("multichannel", multichannel.as_str()));
+        }
+        if let Some(streams) = sound.streams {
+            sound_elem.push_attribute(("streams", streams.to_string().as_str()));
+        }
         writer.write_event(Event::Start(sound_elem)).map_err(|e| e.to_string())?;
 
-        // Codec 配置
-        if let Some(ref codec) = sound.codec {
-            let mut codec_elem = BytesStart::new("codec");
-            codec_elem.push_attribute(("type", codec.codec_type.as_str()));
-            if let Some(ref input_type) = codec.input_type {
-                codec_elem.push_attribute(("input-type", input_type.as_str()));
+        // Codec 配置列表
+        if let Some(ref codecs) = sound.codec {
+            for codec in codecs {
+                let mut codec_elem = BytesStart::new("codec");
+                codec_elem.push_attribute(("type", codec.codec_type.as_str()));
+                if let Some(ref input_type) = codec.input_type {
+                    codec_elem.push_attribute(("input-type", input_type.as_str()));
+                }
+                if let Some(ref output_type) = codec.output_type {
+                    codec_elem.push_attribute(("output-type", output_type.as_str()));
+                }
+                if let Some(microphones) = codec.microphones {
+                    codec_elem.push_attribute(("microphones", microphones.to_string().as_str()));
+                }
+                if let Some(ref record_pipeline) = codec.record_pipeline {
+                    codec_elem.push_attribute(("recordpipeline", record_pipeline.as_str()));
+                }
+                writer.write_event(Event::Empty(codec_elem)).map_err(|e| e.to_string())?;
             }
-            if let Some(ref output_type) = codec.output_type {
-                codec_elem.push_attribute(("output-type", output_type.as_str()));
+        }
+
+        // Audio 后端映射列表
+        if let Some(ref audios) = sound.audio {
+            for audio in audios {
+                let mut audio_elem = BytesStart::new("audio");
+                audio_elem.push_attribute(("id", audio.id.to_string().as_str()));
+                audio_elem.push_attribute(("type", audio.audio_type.as_str()));
+                if let Some(ref server) = audio.server {
+                    audio_elem.push_attribute(("server", server.as_str()));
+                }
+                writer.write_event(Event::Empty(audio_elem)).map_err(|e| e.to_string())?;
             }
-            writer.write_event(Event::Empty(codec_elem)).map_err(|e| e.to_string())?;
         }
 
         writer.write_event(Event::End(BytesEnd::new("sound"))).map_err(|e| e.to_string())?;

@@ -58,6 +58,35 @@ pub struct BlockIOConfig {
     pub discard_granularity: Option<u32>,
 }
 
+/// IOtune 最大突发配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IOtuneMaxConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_bytes_sec_max: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub read_bytes_sec_max: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub write_bytes_sec_max: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_iops_sec_max: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub read_iops_sec_max: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub write_iops_sec_max: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_bytes_sec_max_length: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub read_bytes_sec_max_length: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub write_bytes_sec_max_length: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_iops_sec_max_length: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub read_iops_sec_max_length: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub write_iops_sec_max_length: Option<u64>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct IOtuneConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -72,6 +101,12 @@ pub struct IOtuneConfig {
     pub read_iops_sec: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub write_iops_sec: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub size_iops_sec: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max: Option<IOtuneMaxConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -116,12 +151,22 @@ pub struct DiskDriver {
     pub driver_type: String,
     #[serde(rename = "@cache", skip_serializing_if = "Option::is_none")]
     pub cache: Option<String>,
+    #[serde(rename = "@error_policy", skip_serializing_if = "Option::is_none")]
+    pub error_policy: Option<String>,
+    #[serde(rename = "@rerror_policy", skip_serializing_if = "Option::is_none")]
+    pub rerror_policy: Option<String>,
     #[serde(rename = "@io", skip_serializing_if = "Option::is_none")]
     pub io: Option<String>,
     #[serde(rename = "@ioeventfd", skip_serializing_if = "Option::is_none")]
     pub ioeventfd: Option<String>,
     #[serde(rename = "@event_idx", skip_serializing_if = "Option::is_none")]
     pub event_idx: Option<String>,
+    #[serde(rename = "@copy_on_read", skip_serializing_if = "Option::is_none")]
+    pub copy_on_read: Option<String>,
+    #[serde(rename = "@discard", skip_serializing_if = "Option::is_none")]
+    pub discard: Option<String>,
+    #[serde(rename = "@detect_zeroes", skip_serializing_if = "Option::is_none")]
+    pub detect_zeroes: Option<String>,
     #[serde(rename = "@queues", skip_serializing_if = "Option::is_none")]
     pub queues: Option<u32>,
     #[serde(rename = "@queue_size", skip_serializing_if = "Option::is_none")]
@@ -136,6 +181,24 @@ pub struct DiskDriver {
     pub latency_histogram: Option<Vec<LatencyHistogramConfig>>,
     #[serde(rename = "@discard_no_unref", skip_serializing_if = "Option::is_none")]
     pub discard_no_unref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub metadata_cache: Option<MetadataCacheConfig>,
+}
+
+/// 元数据缓存配置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetadataCacheConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_size: Option<SizeConfig>,
+}
+
+/// 大小配置（带单位）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SizeConfig {
+    #[serde(rename = "@unit", skip_serializing_if = "Option::is_none")]
+    pub unit: Option<String>,
+    #[serde(rename = "$value")]
+    pub value: u64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -238,4 +301,8 @@ pub struct DiskTarget {
     pub tray: Option<String>,
     #[serde(rename = "@rotation_rate", skip_serializing_if = "Option::is_none")]
     pub rotation_rate: Option<u32>,
+    #[serde(rename = "@removable", skip_serializing_if = "Option::is_none")]
+    pub removable: Option<String>,
+    #[serde(rename = "@dpofua", skip_serializing_if = "Option::is_none")]
+    pub dpofua: Option<String>,
 }

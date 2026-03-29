@@ -2,18 +2,24 @@ use crate::{
     model::{
         controller::{ControllerConfig, ControllerDriver, ControllerHotplug},
         devices::{
-            AliasConfig, DeviceNVRAMConfig, FilesystemConfig, FilesystemSource, FilesystemTarget,
-            InputDriver, InputSource, LeaseConfig, MemballoonConfig, RedirdevConfig,
-            RedirfilterConfig, SMBIOSEntry, SmartcardConfig, SysInfoConfig, ThrottleFilter,
+            AccelerationConfig, AliasConfig, AudioConfig, BackendConfig, ChannelPolicyConfig,
+            DeviceNVRAMConfig, FilesystemConfig, FilesystemSource, FilesystemTarget, GlConfig,
+            HubConfig, InputConfig, InputDriver, InputSource, IommuConfig, LeaseConfig, MacAddress,
+            MemballoonConfig, PanicConfig, ParallelConfig, PstoreConfig, RedirdevConfig,
+            RedirfilterConfig, ResolutionConfig, RomConfig, SMBIOSEntry, ShmemConfig,
+            SmartcardConfig, SoundAudio, SoundCodec, SoundConfig, SysInfoConfig, TPMBackend,
+            TPMConfig, ThrottleFilter, VideoConfig, VideoDriverConfig, VideoModel, VsockConfig,
+            WatchdogConfig,
         },
         input_sound_tpm::RngBackend,
+        network::{
+            AcpiConfig, BandwidthConfig, DirectionConfig, LinkConfig, VirtualPortConfig,
+            VirtualPortParameters,
+        },
         serial_console::{ChannelConfig, ChannelTarget, ParallelTarget, SerialTarget},
-        AddressConfig, AudioConfig, ConsoleConfig, CryptoConfig, DiskConfig, DiskDriver,
-        DiskSource, DiskTarget, GraphicsConfig, HostdevConfig, HubConfig, InputConfig,
-        InterfaceConfig, InterfaceModel, InterfaceSource, IommuConfig, MacAddress,
-        MemoryDeviceConfig, PanicConfig, ParallelConfig, PstoreConfig, RngConfig, SerialConfig,
-        ShmemConfig, SoundCodec, SoundConfig, TPMBackend, TPMConfig, VMConfig, VideoConfig,
-        VideoModel, VsockConfig, WatchdogConfig,
+        AddressConfig, ConsoleConfig, CryptoConfig, DiskConfig, DiskDriver, DiskSource, DiskTarget,
+        GraphicsConfig, HostdevConfig, InterfaceConfig, InterfaceModel, InterfaceSource,
+        MemoryDeviceConfig, RngConfig, SerialConfig, VMConfig,
     },
     panels::utils::*,
 };
@@ -344,6 +350,22 @@ impl DevicesPanel {
                         autoport: Some("yes".to_string()),
                         listen: Some("127.0.0.1".to_string()),
                         listen_type: None,
+                        passwd: None,
+                        keymap: None,
+                        share_policy: None,
+                        default_mode: None,
+                        connected: None,
+                        passwd_valid_to: None,
+                        power_control: None,
+                        wait: None,
+                        gl: None,
+                        channel: None,
+                        image: None,
+                        streaming: None,
+                        clipboard: None,
+                        mouse: None,
+                        filetransfer: None,
+                        audio: None,
                     }]);
                 } else {
                     config.devices.graphics = None;
@@ -399,7 +421,217 @@ impl DevicesPanel {
                                     g.listen.get_or_insert_with(|| "127.0.0.1".to_string());
                                 ui.text_edit_singleline(listen);
                                 ui.end_row();
+
+                                // 密码配置
+                                ui.label("密码:");
+                                let passwd = g.passwd.get_or_insert_with(|| "".to_string());
+                                ui.text_edit_singleline(passwd);
+                                ui.end_row();
+
+                                // 键映射
+                                ui.label("键盘映射:");
+                                let keymap = g.keymap.get_or_insert_with(|| "".to_string());
+                                egui::ComboBox::from_id_source(format!("keymap_{}", i))
+                                    .selected_text(keymap.as_str())
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(keymap, "".to_string(), "默认");
+                                        ui.selectable_value(keymap, "en-us".to_string(), "en-us");
+                                        ui.selectable_value(keymap, "zh-cn".to_string(), "zh-cn");
+                                        ui.selectable_value(keymap, "ja".to_string(), "ja");
+                                    });
+                                ui.end_row();
+
+                                // 共享策略
+                                ui.label("共享策略:");
+                                let share_policy =
+                                    g.share_policy.get_or_insert_with(|| "".to_string());
+                                egui::ComboBox::from_id_source(format!("share_policy_{}", i))
+                                    .selected_text(share_policy.as_str())
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(share_policy, "".to_string(), "默认");
+                                        ui.selectable_value(
+                                            share_policy,
+                                            "exclusive".to_string(),
+                                            "exclusive",
+                                        );
+                                        ui.selectable_value(
+                                            share_policy,
+                                            "allow-exclusive".to_string(),
+                                            "allow-exclusive",
+                                        );
+                                        ui.selectable_value(
+                                            share_policy,
+                                            "force-shared".to_string(),
+                                            "force-shared",
+                                        );
+                                    });
+                                ui.end_row();
+
+                                // 连接状态
+                                ui.label("连接状态:");
+                                let connected = g.connected.get_or_insert_with(|| "".to_string());
+                                egui::ComboBox::from_id_source(format!("connected_{}", i))
+                                    .selected_text(connected.as_str())
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(connected, "".to_string(), "默认");
+                                        ui.selectable_value(
+                                            connected,
+                                            "disconnect".to_string(),
+                                            "disconnect",
+                                        );
+                                        ui.selectable_value(connected, "keep".to_string(), "keep");
+                                    });
+                                ui.end_row();
                             });
+
+                            // GL 配置
+                            if g.graphics_type == "spice" {
+                                ui.collapsing("🔧 GL 配置", |ui| {
+                                    let has_gl = g.gl.is_some();
+                                    let mut enable_gl = has_gl;
+                                    if checkbox(ui, &mut enable_gl, "启用 GL") {
+                                        if enable_gl && !has_gl {
+                                            g.gl = Some(GlConfig {
+                                                enable: "yes".to_string(),
+                                                rendernode: None,
+                                            });
+                                        } else if !enable_gl {
+                                            g.gl = None;
+                                        }
+                                    }
+                                    if let Some(ref mut gl) = g.gl {
+                                        grid(ui, format!("gl_grid_{}", i), 2, |ui| {
+                                            ui.label("启用:");
+                                            let mut enable = gl.enable.clone();
+                                            egui::ComboBox::from_id_source(format!(
+                                                "gl_enable_{}",
+                                                i
+                                            ))
+                                            .selected_text(&enable)
+                                            .show_ui(
+                                                ui,
+                                                |ui| {
+                                                    ui.selectable_value(
+                                                        &mut enable,
+                                                        "yes".to_string(),
+                                                        "是",
+                                                    );
+                                                    ui.selectable_value(
+                                                        &mut enable,
+                                                        "no".to_string(),
+                                                        "否",
+                                                    );
+                                                },
+                                            );
+                                            gl.enable = enable;
+                                            ui.end_row();
+
+                                            ui.label("渲染节点:");
+                                            let rendernode =
+                                                gl.rendernode.get_or_insert_with(|| "".to_string());
+                                            ui.text_edit_singleline(rendernode);
+                                            ui.end_row();
+                                        });
+                                    }
+                                });
+                            }
+
+                            // SPICE 通道策略
+                            if g.graphics_type == "spice" {
+                                ui.collapsing("📡 通道策略", |ui| {
+                                    if g.channel.is_none() {
+                                        g.channel = Some(Vec::new());
+                                    }
+                                    if let Some(ref mut channels) = g.channel {
+                                        ui.horizontal(|ui| {
+                                            if add_button(ui, "➕ 添加通道", colors) {
+                                                channels.push(ChannelPolicyConfig {
+                                                    name: "main".to_string(),
+                                                    mode: "secure".to_string(),
+                                                });
+                                            }
+                                        });
+
+                                        let mut to_remove = None;
+                                        for (j, ch) in channels.iter_mut().enumerate() {
+                                            ui.push_id(j, |ui| {
+                                                egui::Frame::group(ui.style())
+                                                    .inner_margin(egui::Margin::same(4.0))
+                                                    .show(ui, |ui| {
+                                                        ui.horizontal(|ui| {
+                                                            ui.label(format!("通道 {}", j + 1));
+                                                            if delete_button(ui, None) {
+                                                                to_remove = Some(j);
+                                                            }
+                                                        });
+                                                        grid(
+                                                            ui,
+                                                            format!("ch_grid_{}_{}", i, j),
+                                                            2,
+                                                            |ui| {
+                                                                ui.label("名称:");
+                                                                egui::ComboBox::from_id_source(
+                                                                    format!("ch_name_{}_{}", i, j),
+                                                                )
+                                                                .selected_text(&ch.name)
+                                                                .show_ui(ui, |ui| {
+                                                                    ui.selectable_value(
+                                                                        &mut ch.name,
+                                                                        "main".to_string(),
+                                                                        "main",
+                                                                    );
+                                                                    ui.selectable_value(
+                                                                        &mut ch.name,
+                                                                        "cursor".to_string(),
+                                                                        "cursor",
+                                                                    );
+                                                                    ui.selectable_value(
+                                                                        &mut ch.name,
+                                                                        "playback".to_string(),
+                                                                        "playback",
+                                                                    );
+                                                                    ui.selectable_value(
+                                                                        &mut ch.name,
+                                                                        "record".to_string(),
+                                                                        "record",
+                                                                    );
+                                                                });
+                                                                ui.end_row();
+
+                                                                ui.label("模式:");
+                                                                egui::ComboBox::from_id_source(
+                                                                    format!("ch_mode_{}_{}", i, j),
+                                                                )
+                                                                .selected_text(&ch.mode)
+                                                                .show_ui(ui, |ui| {
+                                                                    ui.selectable_value(
+                                                                        &mut ch.mode,
+                                                                        "secure".to_string(),
+                                                                        "secure",
+                                                                    );
+                                                                    ui.selectable_value(
+                                                                        &mut ch.mode,
+                                                                        "insecure".to_string(),
+                                                                        "insecure",
+                                                                    );
+                                                                    ui.selectable_value(
+                                                                        &mut ch.mode,
+                                                                        "notConnected".to_string(),
+                                                                        "notConnected",
+                                                                    );
+                                                                });
+                                                                ui.end_row();
+                                                            },
+                                                        );
+                                                    });
+                                            });
+                                        }
+                                        if let Some(idx) = to_remove {
+                                            channels.remove(idx);
+                                        }
+                                    }
+                                });
+                            }
                         });
                         ui.add_space(5.0);
                     });
@@ -415,12 +647,22 @@ impl DevicesPanel {
                 if has_video {
                     config.devices.video = Some(vec![VideoConfig {
                         video_type: None,
+                        primary: None,
                         model: VideoModel {
                             model_type: "qxl".to_string(),
                             vram: Some(65536),
                             heads: Some(1),
-                            primary: Some("yes".to_string()),
+                            primary: None,
+                            ram: None,
+                            vgamem: None,
+                            vram64: None,
+                            blob: None,
+                            edid: None,
                         },
+                        acceleration: None,
+                        driver: None,
+                        resolution: None,
+                        address: None,
                     }]);
                 } else {
                     config.devices.video = None;
@@ -476,6 +718,251 @@ impl DevicesPanel {
                                 ui.add(egui::Slider::new(&mut heads, 1..=4));
                                 v.model.heads = Some(heads);
                                 ui.end_row();
+
+                                // 主要显示器
+                                ui.label("主显示器:");
+                                let mut primary = v.model.primary.clone().unwrap_or_default();
+                                egui::ComboBox::from_id_source(format!("video_primary_{}", i))
+                                    .selected_text(&primary)
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(&mut primary, "".to_string(), "默认");
+                                        ui.selectable_value(&mut primary, "yes".to_string(), "是");
+                                        ui.selectable_value(&mut primary, "no".to_string(), "否");
+                                    });
+                                v.model.primary = Some(primary);
+                                ui.end_row();
+
+                                // VGAMEM
+                                ui.label("VGAMEM (KB):");
+                                let mut vgamem = v.model.vgamem.unwrap_or(0);
+                                ui.add(egui::Slider::new(&mut vgamem, 0..=262144).text("KB"));
+                                v.model.vgamem = Some(vgamem);
+                                ui.end_row();
+
+                                // Blob
+                                ui.label("Blob:");
+                                let mut blob = v.model.blob.clone().unwrap_or_default();
+                                egui::ComboBox::from_id_source(format!("video_blob_{}", i))
+                                    .selected_text(&blob)
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(&mut blob, "".to_string(), "默认");
+                                        ui.selectable_value(&mut blob, "yes".to_string(), "是");
+                                        ui.selectable_value(&mut blob, "no".to_string(), "否");
+                                    });
+                                v.model.blob = Some(blob);
+                                ui.end_row();
+                            });
+
+                            // 加速配置
+                            ui.collapsing("⚡ 加速配置", |ui| {
+                                let has_accel = v.acceleration.is_some();
+                                let mut enable_accel = has_accel;
+                                if checkbox(ui, &mut enable_accel, "启用加速") {
+                                    if enable_accel && !has_accel {
+                                        v.acceleration = Some(AccelerationConfig {
+                                            accel3d: Some("yes".to_string()),
+                                            accel2d: None,
+                                            rendernode: None,
+                                        });
+                                    } else if !enable_accel {
+                                        v.acceleration = None;
+                                    }
+                                }
+                                if let Some(ref mut accel) = v.acceleration {
+                                    grid(ui, format!("accel_grid_{}", i), 2, |ui| {
+                                        ui.label("3D 加速:");
+                                        let mut accel3d = accel.accel3d.clone().unwrap_or_default();
+                                        egui::ComboBox::from_id_source(format!("accel3d_{}", i))
+                                            .selected_text(&accel3d)
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(
+                                                    &mut accel3d,
+                                                    "".to_string(),
+                                                    "默认",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut accel3d,
+                                                    "yes".to_string(),
+                                                    "是",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut accel3d,
+                                                    "no".to_string(),
+                                                    "否",
+                                                );
+                                            });
+                                        accel.accel3d = Some(accel3d);
+                                        ui.end_row();
+
+                                        ui.label("2D 加速:");
+                                        let mut accel2d = accel.accel2d.clone().unwrap_or_default();
+                                        egui::ComboBox::from_id_source(format!("accel2d_{}", i))
+                                            .selected_text(&accel2d)
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(
+                                                    &mut accel2d,
+                                                    "".to_string(),
+                                                    "默认",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut accel2d,
+                                                    "yes".to_string(),
+                                                    "是",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut accel2d,
+                                                    "no".to_string(),
+                                                    "否",
+                                                );
+                                            });
+                                        accel.accel2d = Some(accel2d);
+                                        ui.end_row();
+
+                                        ui.label("渲染节点:");
+                                        let rendernode =
+                                            accel.rendernode.get_or_insert_with(|| "".to_string());
+                                        ui.text_edit_singleline(rendernode);
+                                        ui.end_row();
+                                    });
+                                }
+                            });
+
+                            // 驱动配置
+                            ui.collapsing("🚗 驱动配置", |ui| {
+                                let has_driver = v.driver.is_some();
+                                let mut enable_driver = has_driver;
+                                if checkbox(ui, &mut enable_driver, "启用驱动配置") {
+                                    if enable_driver && !has_driver {
+                                        v.driver = Some(VideoDriverConfig {
+                                            name: None,
+                                            ioeventfd: None,
+                                            event_idx: None,
+                                        });
+                                    } else if !enable_driver {
+                                        v.driver = None;
+                                    }
+                                }
+                                if let Some(ref mut driver) = v.driver {
+                                    grid(ui, format!("video_driver_grid_{}", i), 2, |ui| {
+                                        ui.label("驱动名称:");
+                                        let name =
+                                            driver.name.get_or_insert_with(|| "".to_string());
+                                        egui::ComboBox::from_id_source(format!(
+                                            "video_driver_name_{}",
+                                            i
+                                        ))
+                                        .selected_text(name.as_str())
+                                        .show_ui(
+                                            ui,
+                                            |ui| {
+                                                ui.selectable_value(name, "".to_string(), "默认");
+                                                ui.selectable_value(
+                                                    name,
+                                                    "virtio".to_string(),
+                                                    "virtio",
+                                                );
+                                                ui.selectable_value(
+                                                    name,
+                                                    "virtio-vga".to_string(),
+                                                    "virtio-vga",
+                                                );
+                                            },
+                                        );
+                                        ui.end_row();
+
+                                        ui.label("IO 事件 FD:");
+                                        let mut ioeventfd =
+                                            driver.ioeventfd.clone().unwrap_or_default();
+                                        egui::ComboBox::from_id_source(format!(
+                                            "video_ioeventfd_{}",
+                                            i
+                                        ))
+                                        .selected_text(&ioeventfd)
+                                        .show_ui(
+                                            ui,
+                                            |ui| {
+                                                ui.selectable_value(
+                                                    &mut ioeventfd,
+                                                    "".to_string(),
+                                                    "默认",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut ioeventfd,
+                                                    "on".to_string(),
+                                                    "on",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut ioeventfd,
+                                                    "off".to_string(),
+                                                    "off",
+                                                );
+                                            },
+                                        );
+                                        driver.ioeventfd = Some(ioeventfd);
+                                        ui.end_row();
+
+                                        ui.label("Event IDX:");
+                                        let mut event_idx =
+                                            driver.event_idx.clone().unwrap_or_default();
+                                        egui::ComboBox::from_id_source(format!(
+                                            "video_event_idx_{}",
+                                            i
+                                        ))
+                                        .selected_text(&event_idx)
+                                        .show_ui(
+                                            ui,
+                                            |ui| {
+                                                ui.selectable_value(
+                                                    &mut event_idx,
+                                                    "".to_string(),
+                                                    "默认",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut event_idx,
+                                                    "on".to_string(),
+                                                    "on",
+                                                );
+                                                ui.selectable_value(
+                                                    &mut event_idx,
+                                                    "off".to_string(),
+                                                    "off",
+                                                );
+                                            },
+                                        );
+                                        driver.event_idx = Some(event_idx);
+                                        ui.end_row();
+                                    });
+                                }
+                            });
+
+                            // 分辨率配置
+                            ui.collapsing("📐 分辨率配置", |ui| {
+                                let has_resolution = v.resolution.is_some();
+                                let mut enable_resolution = has_resolution;
+                                if checkbox(ui, &mut enable_resolution, "启用分辨率配置") {
+                                    if enable_resolution && !has_resolution {
+                                        v.resolution = Some(ResolutionConfig { x: 1920, y: 1080 });
+                                    } else if !enable_resolution {
+                                        v.resolution = None;
+                                    }
+                                }
+                                if let Some(ref mut resolution) = v.resolution {
+                                    grid(ui, format!("resolution_grid_{}", i), 2, |ui| {
+                                        ui.label("宽度 (X):");
+                                        ui.add(
+                                            egui::DragValue::new(&mut resolution.x)
+                                                .clamp_range(640..=3840),
+                                        );
+                                        ui.end_row();
+
+                                        ui.label("高度 (Y):");
+                                        ui.add(
+                                            egui::DragValue::new(&mut resolution.y)
+                                                .clamp_range(480..=2160),
+                                        );
+                                        ui.end_row();
+                                    });
+                                }
                             });
                         });
                         ui.add_space(5.0);
@@ -633,6 +1120,162 @@ impl DevicesPanel {
                                                     "unsafe",
                                                 );
                                             });
+                                        ui.end_row();
+
+                                        ui.label("错误策略:");
+                                        let error_policy = driver
+                                            .error_policy
+                                            .get_or_insert_with(|| "".to_string());
+                                        egui::ComboBox::from_id_source(format!(
+                                            "error_policy_{}",
+                                            i
+                                        ))
+                                        .selected_text(error_policy.as_str())
+                                        .show_ui(
+                                            ui,
+                                            |ui| {
+                                                ui.selectable_value(
+                                                    error_policy,
+                                                    "".to_string(),
+                                                    "默认",
+                                                );
+                                                ui.selectable_value(
+                                                    error_policy,
+                                                    "stop".to_string(),
+                                                    "stop (暂停)",
+                                                );
+                                                ui.selectable_value(
+                                                    error_policy,
+                                                    "report".to_string(),
+                                                    "report (报告)",
+                                                );
+                                                ui.selectable_value(
+                                                    error_policy,
+                                                    "ignore".to_string(),
+                                                    "ignore (忽略)",
+                                                );
+                                                ui.selectable_value(
+                                                    error_policy,
+                                                    "enospace".to_string(),
+                                                    "enospace (空间不足)",
+                                                );
+                                            },
+                                        );
+                                        ui.end_row();
+
+                                        ui.label("IO 模式:");
+                                        let io = driver.io.get_or_insert_with(|| "".to_string());
+                                        egui::ComboBox::from_id_source(format!("io_{}", i))
+                                            .selected_text(io.as_str())
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(io, "".to_string(), "默认");
+                                                ui.selectable_value(
+                                                    io,
+                                                    "threads".to_string(),
+                                                    "threads",
+                                                );
+                                                ui.selectable_value(
+                                                    io,
+                                                    "native".to_string(),
+                                                    "native",
+                                                );
+                                                ui.selectable_value(
+                                                    io,
+                                                    "io_uring".to_string(),
+                                                    "io_uring",
+                                                );
+                                            });
+                                        ui.end_row();
+
+                                        ui.label("Discard:");
+                                        let discard =
+                                            driver.discard.get_or_insert_with(|| "".to_string());
+                                        egui::ComboBox::from_id_source(format!("discard_{}", i))
+                                            .selected_text(discard.as_str())
+                                            .show_ui(ui, |ui| {
+                                                ui.selectable_value(
+                                                    discard,
+                                                    "".to_string(),
+                                                    "默认",
+                                                );
+                                                ui.selectable_value(
+                                                    discard,
+                                                    "ignore".to_string(),
+                                                    "ignore (忽略)",
+                                                );
+                                                ui.selectable_value(
+                                                    discard,
+                                                    "unmap".to_string(),
+                                                    "unmap (丢弃)",
+                                                );
+                                            });
+                                        ui.end_row();
+
+                                        ui.label("零值检测:");
+                                        let detect_zeroes = driver
+                                            .detect_zeroes
+                                            .get_or_insert_with(|| "".to_string());
+                                        egui::ComboBox::from_id_source(format!(
+                                            "detect_zeroes_{}",
+                                            i
+                                        ))
+                                        .selected_text(detect_zeroes.as_str())
+                                        .show_ui(
+                                            ui,
+                                            |ui| {
+                                                ui.selectable_value(
+                                                    detect_zeroes,
+                                                    "".to_string(),
+                                                    "默认",
+                                                );
+                                                ui.selectable_value(
+                                                    detect_zeroes,
+                                                    "off".to_string(),
+                                                    "off (关闭)",
+                                                );
+                                                ui.selectable_value(
+                                                    detect_zeroes,
+                                                    "on".to_string(),
+                                                    "on (开启)",
+                                                );
+                                                ui.selectable_value(
+                                                    detect_zeroes,
+                                                    "unmap".to_string(),
+                                                    "unmap (丢弃)",
+                                                );
+                                            },
+                                        );
+                                        ui.end_row();
+
+                                        ui.label("拷贝读取:");
+                                        let copy_on_read = driver
+                                            .copy_on_read
+                                            .get_or_insert_with(|| "".to_string());
+                                        egui::ComboBox::from_id_source(format!(
+                                            "copy_on_read_{}",
+                                            i
+                                        ))
+                                        .selected_text(copy_on_read.as_str())
+                                        .show_ui(
+                                            ui,
+                                            |ui| {
+                                                ui.selectable_value(
+                                                    copy_on_read,
+                                                    "".to_string(),
+                                                    "默认",
+                                                );
+                                                ui.selectable_value(
+                                                    copy_on_read,
+                                                    "on".to_string(),
+                                                    "on (开启)",
+                                                );
+                                                ui.selectable_value(
+                                                    copy_on_read,
+                                                    "off".to_string(),
+                                                    "off (关闭)",
+                                                );
+                                            },
+                                        );
                                         ui.end_row();
                                     }
 
@@ -857,6 +1500,319 @@ impl DevicesPanel {
                                         ui.end_row();
                                     });
                                 }
+
+                                // 带宽配置
+                                ui.collapsing("带宽配置 (Bandwidth)", |ui| {
+                                    if iface.bandwidth.is_none() {
+                                        iface.bandwidth =
+                                            Some(BandwidthConfig { inbound: None, outbound: None });
+                                    }
+                                    if let Some(ref mut bandwidth) = iface.bandwidth {
+                                        ui.label("入站 (Inbound):");
+                                        if bandwidth.inbound.is_none() {
+                                            bandwidth.inbound = Some(DirectionConfig {
+                                                average: None,
+                                                peak: None,
+                                                burst: None,
+                                            });
+                                        }
+                                        if let Some(ref mut inbound) = bandwidth.inbound {
+                                            grid(ui, format!("inbound_grid_{}", i), 3, |ui| {
+                                                ui.label("平均:");
+                                                let avg = inbound.average.get_or_insert(0);
+                                                ui.add(egui::DragValue::new(avg).prefix("avg: "));
+                                                ui.end_row();
+                                                ui.label("峰值:");
+                                                let peak = inbound.peak.get_or_insert(0);
+                                                ui.add(egui::DragValue::new(peak).prefix("peak: "));
+                                                ui.end_row();
+                                                ui.label("突发:");
+                                                let burst = inbound.burst.get_or_insert(0);
+                                                ui.add(
+                                                    egui::DragValue::new(burst).prefix("burst: "),
+                                                );
+                                                ui.end_row();
+                                            });
+                                        }
+
+                                        ui.add_space(5.0);
+
+                                        ui.label("出站 (Outbound):");
+                                        if bandwidth.outbound.is_none() {
+                                            bandwidth.outbound = Some(DirectionConfig {
+                                                average: None,
+                                                peak: None,
+                                                burst: None,
+                                            });
+                                        }
+                                        if let Some(ref mut outbound) = bandwidth.outbound {
+                                            grid(ui, format!("outbound_grid_{}", i), 3, |ui| {
+                                                ui.label("平均:");
+                                                let avg = outbound.average.get_or_insert(0);
+                                                ui.add(egui::DragValue::new(avg).prefix("avg: "));
+                                                ui.end_row();
+                                                ui.label("峰值:");
+                                                let peak = outbound.peak.get_or_insert(0);
+                                                ui.add(egui::DragValue::new(peak).prefix("peak: "));
+                                                ui.end_row();
+                                                ui.label("突发:");
+                                                let burst = outbound.burst.get_or_insert(0);
+                                                ui.add(
+                                                    egui::DragValue::new(burst).prefix("burst: "),
+                                                );
+                                                ui.end_row();
+                                            });
+                                        }
+                                    }
+                                });
+
+                                // 虚拟端口配置
+                                ui.collapsing("虚拟端口 (VirtualPort)", |ui| {
+                                    if iface.virtualport.is_none() {
+                                        iface.virtualport = Some(VirtualPortConfig {
+                                            port_type: "802.1Qbg".to_string(),
+                                            parameters: None,
+                                        });
+                                    }
+                                    if let Some(ref mut virtualport) = iface.virtualport {
+                                        grid(ui, format!("virtualport_grid_{}", i), 2, |ui| {
+                                            ui.label("类型:");
+                                            egui::ComboBox::from_id_source(format!(
+                                                "virtualport_type_{}",
+                                                i
+                                            ))
+                                            .selected_text(&virtualport.port_type)
+                                            .show_ui(
+                                                ui,
+                                                |ui| {
+                                                    ui.selectable_value(
+                                                        &mut virtualport.port_type,
+                                                        "802.1Qbg".to_string(),
+                                                        "802.1Qbg",
+                                                    );
+                                                    ui.selectable_value(
+                                                        &mut virtualport.port_type,
+                                                        "802.1QBh".to_string(),
+                                                        "802.1QBh",
+                                                    );
+                                                },
+                                            );
+                                            ui.end_row();
+                                        });
+
+                                        if virtualport.parameters.is_none() {
+                                            virtualport.parameters = Some(VirtualPortParameters {
+                                                interfaceid: None,
+                                                profileid: None,
+                                                instanceid: None,
+                                            });
+                                        }
+                                        if let Some(ref mut params) = virtualport.parameters {
+                                            ui.add_space(5.0);
+                                            grid(
+                                                ui,
+                                                format!("virtualport_params_{}", i),
+                                                2,
+                                                |ui| {
+                                                    ui.label("InterfaceID:");
+                                                    let interfaceid = params
+                                                        .interfaceid
+                                                        .get_or_insert_with(|| "".to_string());
+                                                    ui.text_edit_singleline(interfaceid);
+                                                    ui.end_row();
+
+                                                    ui.label("ProfileID:");
+                                                    let profileid = params
+                                                        .profileid
+                                                        .get_or_insert_with(|| "".to_string());
+                                                    ui.text_edit_singleline(profileid);
+                                                    ui.end_row();
+
+                                                    ui.label("InstanceID:");
+                                                    let instanceid = params
+                                                        .instanceid
+                                                        .get_or_insert_with(|| "".to_string());
+                                                    ui.text_edit_singleline(instanceid);
+                                                    ui.end_row();
+                                                },
+                                            );
+                                        }
+                                    }
+                                });
+
+                                // 链接状态配置
+                                ui.collapsing("链接状态 (Link)", |ui| {
+                                    if iface.link.is_none() {
+                                        iface.link = Some(LinkConfig { state: "up".to_string() });
+                                    }
+                                    if let Some(ref mut link) = iface.link {
+                                        grid(ui, format!("link_grid_{}", i), 2, |ui| {
+                                            ui.label("状态:");
+                                            egui::ComboBox::from_id_source(format!(
+                                                "link_state_{}",
+                                                i
+                                            ))
+                                            .selected_text(&link.state)
+                                            .show_ui(
+                                                ui,
+                                                |ui| {
+                                                    ui.selectable_value(
+                                                        &mut link.state,
+                                                        "up".to_string(),
+                                                        "up (连接)",
+                                                    );
+                                                    ui.selectable_value(
+                                                        &mut link.state,
+                                                        "down".to_string(),
+                                                        "down (断开)",
+                                                    );
+                                                },
+                                            );
+                                            ui.end_row();
+                                        });
+                                    }
+                                });
+
+                                // 目标设备配置
+                                ui.collapsing("目标设备 (Target)", |ui| {
+                                    let target = iface.target.get_or_insert_with(|| "".to_string());
+                                    grid(ui, format!("target_grid_{}", i), 2, |ui| {
+                                        ui.label("设备名:");
+                                        ui.text_edit_singleline(target);
+                                        ui.end_row();
+                                    });
+                                });
+
+                                // ROM 配置
+                                ui.collapsing("ROM BIOS", |ui| {
+                                    if iface.rom.is_none() {
+                                        iface.rom =
+                                            Some(RomConfig { bar: "off".to_string(), file: None });
+                                    }
+                                    if let Some(ref mut rom) = iface.rom {
+                                        grid(ui, format!("rom_grid_{}", i), 2, |ui| {
+                                            ui.label("BAR:");
+                                            egui::ComboBox::from_id_source(format!(
+                                                "rom_bar_{}",
+                                                i
+                                            ))
+                                            .selected_text(&rom.bar)
+                                            .show_ui(
+                                                ui,
+                                                |ui| {
+                                                    ui.selectable_value(
+                                                        &mut rom.bar,
+                                                        "on".to_string(),
+                                                        "on (启用)",
+                                                    );
+                                                    ui.selectable_value(
+                                                        &mut rom.bar,
+                                                        "off".to_string(),
+                                                        "off (禁用)",
+                                                    );
+                                                },
+                                            );
+                                            ui.end_row();
+
+                                            ui.label("ROM 文件:");
+                                            let file =
+                                                rom.file.get_or_insert_with(|| "".to_string());
+                                            ui.text_edit_singleline(file);
+                                            ui.end_row();
+                                        });
+                                    }
+                                });
+
+                                // ACPI 索引配置
+                                ui.collapsing("ACPI 索引", |ui| {
+                                    if iface.acpi.is_none() {
+                                        iface.acpi = Some(AcpiConfig { index: 1 });
+                                    }
+                                    if let Some(ref mut acpi) = iface.acpi {
+                                        grid(ui, format!("acpi_grid_{}", i), 2, |ui| {
+                                            ui.label("ACPI 索引:");
+                                            ui.add(egui::DragValue::new(&mut acpi.index).speed(1));
+                                            ui.end_row();
+                                        });
+                                    }
+                                });
+
+                                // 后端配置
+                                ui.collapsing("后端 (Backend)", |ui| {
+                                    if iface.backend.is_none() {
+                                        iface.backend = Some(BackendConfig {
+                                            tap: None,
+                                            vhost: None,
+                                            backend_type: None,
+                                            log_file: None,
+                                            hostname: None,
+                                            fqdn: None,
+                                        });
+                                    }
+                                    if let Some(ref mut backend) = iface.backend {
+                                        grid(ui, format!("backend_grid_{}", i), 2, |ui| {
+                                            ui.label("类型:");
+                                            egui::ComboBox::from_id_source(format!(
+                                                "backend_type_{}",
+                                                i
+                                            ))
+                                            .selected_text(
+                                                backend.backend_type.as_deref().unwrap_or(""),
+                                            )
+                                            .show_ui(
+                                                ui,
+                                                |ui| {
+                                                    ui.selectable_value(
+                                                        &mut backend.backend_type,
+                                                        None,
+                                                        "默认",
+                                                    );
+                                                    ui.selectable_value(
+                                                        &mut backend.backend_type,
+                                                        Some("passt".to_string()),
+                                                        "passt",
+                                                    );
+                                                },
+                                            );
+                                            ui.end_row();
+
+                                            if backend.backend_type.as_deref() == Some("passt") {
+                                                ui.label("日志文件:");
+                                                let log = backend
+                                                    .log_file
+                                                    .get_or_insert_with(|| "".to_string());
+                                                ui.text_edit_singleline(log);
+                                                ui.end_row();
+
+                                                ui.label("主机名:");
+                                                let hostname = backend
+                                                    .hostname
+                                                    .get_or_insert_with(|| "".to_string());
+                                                ui.text_edit_singleline(hostname);
+                                                ui.end_row();
+
+                                                ui.label("FQDN:");
+                                                let fqdn = backend
+                                                    .fqdn
+                                                    .get_or_insert_with(|| "".to_string());
+                                                ui.text_edit_singleline(fqdn);
+                                                ui.end_row();
+                                            }
+
+                                            ui.label("TAP 设备:");
+                                            let tap =
+                                                backend.tap.get_or_insert_with(|| "".to_string());
+                                            ui.text_edit_singleline(tap);
+                                            ui.end_row();
+
+                                            ui.label("Vhost 设备:");
+                                            let vhost =
+                                                backend.vhost.get_or_insert_with(|| "".to_string());
+                                            ui.text_edit_singleline(vhost);
+                                            ui.end_row();
+                                        });
+                                    }
+                                });
                             });
                         ui.add_space(5.0);
                     });
@@ -1235,7 +2191,9 @@ impl DevicesPanel {
                         serial_list.push(SerialConfig {
                             serial_type: "pty".to_string(),
                             port: None,
+                            source: None,
                             target: None,
+                            log: None,
                         });
                     }
                 });
@@ -1321,6 +2279,128 @@ impl DevicesPanel {
                                     });
                                 ui.end_row();
                             });
+
+                            // Source 配置
+                            ui.collapsing("Source 配置", |ui| {
+                                if serial.source.is_none() {
+                                    serial.source = Some(crate::model::devices::SerialSource {
+                                        path: None,
+                                        mode: None,
+                                        host: None,
+                                        port: None,
+                                        service: None,
+                                        channel: None,
+                                    });
+                                }
+                                if let Some(ref mut source) = serial.source {
+                                    grid(ui, format!("serial_source_grid_{}", i), 2, |ui| {
+                                        ui.label("路径:");
+                                        let path =
+                                            source.path.get_or_insert_with(|| "".to_string());
+                                        ui.text_edit_singleline(path);
+                                        ui.end_row();
+
+                                        ui.label("模式:");
+                                        let mode =
+                                            source.mode.get_or_insert_with(|| "".to_string());
+                                        egui::ComboBox::from_id_source(format!(
+                                            "serial_source_mode_{}",
+                                            i
+                                        ))
+                                        .selected_text(mode.as_str())
+                                        .show_ui(
+                                            ui,
+                                            |ui| {
+                                                ui.selectable_value(mode, "".to_string(), "默认");
+                                                ui.selectable_value(
+                                                    mode,
+                                                    "connect".to_string(),
+                                                    "connect",
+                                                );
+                                                ui.selectable_value(
+                                                    mode,
+                                                    "bind".to_string(),
+                                                    "bind",
+                                                );
+                                                ui.selectable_value(
+                                                    mode,
+                                                    "connectcreate".to_string(),
+                                                    "connectcreate",
+                                                );
+                                                ui.selectable_value(
+                                                    mode,
+                                                    "bindcreate".to_string(),
+                                                    "bindcreate",
+                                                );
+                                            },
+                                        );
+                                        ui.end_row();
+
+                                        ui.label("主机:");
+                                        let host =
+                                            source.host.get_or_insert_with(|| "".to_string());
+                                        ui.text_edit_singleline(host);
+                                        ui.end_row();
+
+                                        ui.label("端口:");
+                                        let port =
+                                            source.port.get_or_insert_with(|| "".to_string());
+                                        ui.text_edit_singleline(port);
+                                        ui.end_row();
+
+                                        ui.label("服务:");
+                                        let service =
+                                            source.service.get_or_insert_with(|| "".to_string());
+                                        ui.text_edit_singleline(service);
+                                        ui.end_row();
+
+                                        ui.label("通道:");
+                                        let channel =
+                                            source.channel.get_or_insert_with(|| "".to_string());
+                                        ui.text_edit_singleline(channel);
+                                        ui.end_row();
+                                    });
+                                }
+                            });
+
+                            // Log 配置
+                            ui.collapsing("Log 配置", |ui| {
+                                if serial.log.is_none() {
+                                    serial.log = Some(crate::model::devices::SerialLog {
+                                        file: "".to_string(),
+                                        append: None,
+                                    });
+                                }
+                                if let Some(ref mut log) = serial.log {
+                                    grid(ui, format!("serial_log_grid_{}", i), 2, |ui| {
+                                        ui.label("日志文件:");
+                                        ui.text_edit_singleline(&mut log.file);
+                                        ui.end_row();
+
+                                        ui.label("追加模式:");
+                                        let append =
+                                            log.append.get_or_insert_with(|| "".to_string());
+                                        egui::ComboBox::from_id_source(format!(
+                                            "serial_log_append_{}",
+                                            i
+                                        ))
+                                        .selected_text(append.as_str())
+                                        .show_ui(
+                                            ui,
+                                            |ui| {
+                                                ui.selectable_value(append, "".to_string(), "默认");
+                                                ui.selectable_value(append, "on".to_string(), "on");
+                                                ui.selectable_value(
+                                                    append,
+                                                    "off".to_string(),
+                                                    "off",
+                                                );
+                                            },
+                                        );
+                                        ui.end_row();
+                                    });
+                                }
+                            });
                         });
                         ui.add_space(5.0);
                     });
@@ -1344,6 +2424,7 @@ impl DevicesPanel {
                     if add_button(ui, "➕ 添加并口", colors) {
                         parallel_list.push(ParallelConfig {
                             parallel_type: "dev".to_string(),
+                            source: None,
                             target: None,
                         });
                     }
@@ -1374,8 +2455,9 @@ impl DevicesPanel {
 
                                 // Target 配置
                                 ui.label("端口地址:");
-                                let target =
-                                    parallel.target.get_or_insert(ParallelTarget { port: 0x378 });
+                                let target = parallel
+                                    .target
+                                    .get_or_insert(ParallelTarget { port: 0x378, path: None });
                                 ui.add(egui::Slider::new(&mut target.port, 0x378..=0x37F).text(""));
                                 ui.end_row();
                             });
@@ -1396,8 +2478,12 @@ impl DevicesPanel {
             let mut has_console = config.devices.console.is_some();
             if checkbox(ui, &mut has_console, "启用控制台") {
                 if has_console {
-                    config.devices.console =
-                        Some(ConsoleConfig { console_type: "pty".to_string(), target: None });
+                    config.devices.console = Some(ConsoleConfig {
+                        console_type: "pty".to_string(),
+                        source: None,
+                        target: None,
+                        log: None,
+                    });
                 } else {
                     config.devices.console = None;
                 }
@@ -1446,7 +2532,13 @@ impl DevicesPanel {
             if let Some(ref mut sound_list) = config.devices.sound {
                 ui.horizontal(|ui| {
                     if add_button(ui, "➕ 添加声音设备", colors) {
-                        sound_list.push(SoundConfig { model: "ich6".to_string(), codec: None });
+                        sound_list.push(SoundConfig {
+                            model: "ich6".to_string(),
+                            multichannel: None,
+                            streams: None,
+                            codec: None,
+                            audio: None,
+                        });
                     }
                 });
 
@@ -1485,67 +2577,235 @@ impl DevicesPanel {
                                             "es1370".to_string(),
                                             "es1370",
                                         );
+                                        ui.selectable_value(
+                                            &mut sound.model,
+                                            "usb".to_string(),
+                                            "usb",
+                                        );
+                                        ui.selectable_value(
+                                            &mut sound.model,
+                                            "virtio".to_string(),
+                                            "virtio",
+                                        );
                                     });
                                 ui.end_row();
+
+                                // USB 模型的多声道配置
+                                if sound.model == "usb" {
+                                    ui.label("多声道:");
+                                    let multichannel =
+                                        sound.multichannel.get_or_insert_with(|| "".to_string());
+                                    egui::ComboBox::from_id_source(format!(
+                                        "sound_multichannel_{}",
+                                        i
+                                    ))
+                                    .selected_text(multichannel.as_str())
+                                    .show_ui(ui, |ui| {
+                                        ui.selectable_value(multichannel, "".to_string(), "默认");
+                                        ui.selectable_value(multichannel, "yes".to_string(), "是");
+                                        ui.selectable_value(multichannel, "no".to_string(), "否");
+                                    });
+                                    ui.end_row();
+                                }
+
+                                // Virtio 模型的流配置
+                                if sound.model == "virtio" {
+                                    ui.label("流数量:");
+                                    let streams = &mut sound.streams;
+                                    let mut stream_val = streams.unwrap_or(2);
+                                    ui.add(
+                                        egui::DragValue::new(&mut stream_val).clamp_range(1..=8),
+                                    );
+                                    *streams = Some(stream_val);
+                                    ui.end_row();
+                                }
                             });
 
-                            // Codec 配置
-                            ui.collapsing("Codec 配置", |ui| {
-                                if sound.codec.is_none() {
-                                    sound.codec = Some(SoundCodec {
-                                        codec_type: "duplex".to_string(),
-                                        input_type: None,
-                                        output_type: None,
-                                    });
+                            // Codec 配置 (ich6/ich9 模型)
+                            if sound.model == "ich6" || sound.model == "ich9" {
+                                ui.collapsing("Codec 配置", |ui| {
+                                    if sound.codec.is_none() {
+                                        sound.codec = Some(Vec::new());
+                                    }
+                                    if let Some(ref mut codecs) = sound.codec {
+                                        ui.horizontal(|ui| {
+                                            if add_button(ui, "➕ 添加 Codec", colors) {
+                                                codecs.push(SoundCodec {
+                                                    codec_type: "duplex".to_string(),
+                                                    input_type: None,
+                                                    output_type: None,
+                                                    microphones: None,
+                                                    record_pipeline: None,
+                                                });
+                                            }
+                                        });
+
+                                        let mut codec_to_remove = None;
+                                        for (j, codec) in codecs.iter_mut().enumerate() {
+                                            ui.push_id(j, |ui| {
+                                                egui::Frame::group(ui.style())
+                                                    .inner_margin(egui::Margin::same(4.0))
+                                                    .show(ui, |ui| {
+                                                        ui.horizontal(|ui| {
+                                                            ui.label(format!("Codec {}", j + 1));
+                                                            if delete_button(ui, None) {
+                                                                codec_to_remove = Some(j);
+                                                            }
+                                                        });
+                                                        grid(
+                                                            ui,
+                                                            format!("sound_codec_grid_{}_{}", i, j),
+                                                            2,
+                                                            |ui| {
+                                                                ui.label("类型:");
+                                                                egui::ComboBox::from_id_source(
+                                                                    format!(
+                                                                        "sound_codec_type_{}_{}",
+                                                                        i, j
+                                                                    ),
+                                                                )
+                                                                .selected_text(&codec.codec_type)
+                                                                .show_ui(ui, |ui| {
+                                                                    ui.selectable_value(
+                                                                        &mut codec.codec_type,
+                                                                        "duplex".to_string(),
+                                                                        "duplex",
+                                                                    );
+                                                                    ui.selectable_value(
+                                                                        &mut codec.codec_type,
+                                                                        "input".to_string(),
+                                                                        "input",
+                                                                    );
+                                                                    ui.selectable_value(
+                                                                        &mut codec.codec_type,
+                                                                        "output".to_string(),
+                                                                        "output",
+                                                                    );
+                                                                });
+                                                                ui.end_row();
+
+                                                                ui.label("输入类型:");
+                                                                let input_type = codec
+                                                                    .input_type
+                                                                    .get_or_insert_with(|| {
+                                                                        "".to_string()
+                                                                    });
+                                                                ui.text_edit_singleline(input_type);
+                                                                ui.end_row();
+
+                                                                ui.label("输出类型:");
+                                                                let output_type = codec
+                                                                    .output_type
+                                                                    .get_or_insert_with(|| {
+                                                                        "".to_string()
+                                                                    });
+                                                                ui.text_edit_singleline(
+                                                                    output_type,
+                                                                );
+                                                                ui.end_row();
+                                                            },
+                                                        );
+                                                    });
+                                            });
+                                        }
+                                        if let Some(idx) = codec_to_remove {
+                                            codecs.remove(idx);
+                                        }
+                                    }
+                                });
+                            }
+
+                            // Audio 后端映射配置
+                            ui.collapsing("音频后端", |ui| {
+                                if sound.audio.is_none() {
+                                    sound.audio = Some(Vec::new());
                                 }
-                                if let Some(ref mut codec) = sound.codec {
-                                    grid(ui, format!("sound_codec_grid_{}", i), 2, |ui| {
-                                        ui.label("编解码器类型:");
-                                        egui::ComboBox::from_id_source(format!(
-                                            "sound_codec_type_{}",
-                                            i
-                                        ))
-                                        .selected_text(&codec.codec_type)
-                                        .show_ui(
-                                            ui,
-                                            |ui| {
-                                                ui.selectable_value(
-                                                    &mut codec.codec_type,
-                                                    "duplex".to_string(),
-                                                    "duplex",
-                                                );
-                                                ui.selectable_value(
-                                                    &mut codec.codec_type,
-                                                    "input".to_string(),
-                                                    "input",
-                                                );
-                                                ui.selectable_value(
-                                                    &mut codec.codec_type,
-                                                    "output".to_string(),
-                                                    "output",
-                                                );
-                                            },
-                                        );
-                                        ui.end_row();
-
-                                        ui.label("输入类型:");
-                                        if let Some(ref mut input_type) = codec.input_type {
-                                            ui.text_edit_singleline(input_type);
-                                        } else {
-                                            let mut empty = String::new();
-                                            ui.text_edit_singleline(&mut empty);
+                                if let Some(ref mut audios) = sound.audio {
+                                    ui.horizontal(|ui| {
+                                        if add_button(ui, "➕ 添加音频后端", colors) {
+                                            audios.push(SoundAudio {
+                                                id: 0,
+                                                audio_type: "pulseaudio".to_string(),
+                                                server: None,
+                                            });
                                         }
-                                        ui.end_row();
-
-                                        ui.label("输出类型:");
-                                        if let Some(ref mut output_type) = codec.output_type {
-                                            ui.text_edit_singleline(output_type);
-                                        } else {
-                                            let mut empty = String::new();
-                                            ui.text_edit_singleline(&mut empty);
-                                        }
-                                        ui.end_row();
                                     });
+
+                                    let mut audio_to_remove = None;
+                                    for (j, audio) in audios.iter_mut().enumerate() {
+                                        ui.push_id(j, |ui| {
+                                            egui::Frame::group(ui.style())
+                                                .inner_margin(egui::Margin::same(4.0))
+                                                .show(ui, |ui| {
+                                                    ui.horizontal(|ui| {
+                                                        ui.label(format!("音频后端 {}", j + 1));
+                                                        if delete_button(ui, None) {
+                                                            audio_to_remove = Some(j);
+                                                        }
+                                                    });
+                                                    grid(
+                                                        ui,
+                                                        format!("sound_audio_grid_{}_{}", i, j),
+                                                        2,
+                                                        |ui| {
+                                                            ui.label("ID:");
+                                                            ui.add(
+                                                                egui::DragValue::new(&mut audio.id)
+                                                                    .clamp_range(0..=7),
+                                                            );
+                                                            ui.end_row();
+
+                                                            ui.label("类型:");
+                                                            egui::ComboBox::from_id_source(
+                                                                format!(
+                                                                    "sound_audio_type_{}_{}",
+                                                                    i, j
+                                                                ),
+                                                            )
+                                                            .selected_text(&audio.audio_type)
+                                                            .show_ui(ui, |ui| {
+                                                                ui.selectable_value(
+                                                                    &mut audio.audio_type,
+                                                                    "pulseaudio".to_string(),
+                                                                    "pulseaudio",
+                                                                );
+                                                                ui.selectable_value(
+                                                                    &mut audio.audio_type,
+                                                                    "alsa".to_string(),
+                                                                    "alsa",
+                                                                );
+                                                                ui.selectable_value(
+                                                                    &mut audio.audio_type,
+                                                                    "sdl".to_string(),
+                                                                    "sdl",
+                                                                );
+                                                                ui.selectable_value(
+                                                                    &mut audio.audio_type,
+                                                                    "file".to_string(),
+                                                                    "file",
+                                                                );
+                                                                ui.selectable_value(
+                                                                    &mut audio.audio_type,
+                                                                    "none".to_string(),
+                                                                    "none",
+                                                                );
+                                                            });
+                                                            ui.end_row();
+
+                                                            ui.label("服务器:");
+                                                            let server = audio
+                                                                .server
+                                                                .get_or_insert_with(|| "".into());
+                                                            ui.text_edit_singleline(server);
+                                                            ui.end_row();
+                                                        },
+                                                    );
+                                                });
+                                        });
+                                    }
+                                    if let Some(idx) = audio_to_remove {
+                                        audios.remove(idx);
+                                    }
                                 }
                             });
                         });
@@ -3829,10 +5089,8 @@ impl DevicesPanel {
                             // ID 映射配置
                             ui.collapsing("ID 映射 (ID Map)", |ui| {
                                 if fs.idmap.is_none() {
-                                    fs.idmap = Some(crate::model::IdMapConfig {
-                                        uid: None,
-                                        gid: None,
-                                    });
+                                    fs.idmap =
+                                        Some(crate::model::IdMapConfig { uid: None, gid: None });
                                 }
                                 if let Some(ref mut idmap) = fs.idmap {
                                     let mut has_uid = idmap.uid.is_some();
@@ -3909,7 +5167,9 @@ impl DevicesPanel {
                                     // 空间硬限制
                                     ui.label("空间硬限制 (bytes):");
                                     let hard_limit = fs.space_hard_limit.get_or_insert(0);
-                                    if ui.add(egui::DragValue::new(hard_limit).prefix("硬限制：")).changed()
+                                    if ui
+                                        .add(egui::DragValue::new(hard_limit).prefix("硬限制："))
+                                        .changed()
                                         && *hard_limit == 0
                                     {
                                         fs.space_hard_limit = None;
@@ -3919,7 +5179,9 @@ impl DevicesPanel {
                                     // 空间软限制
                                     ui.label("空间软限制 (bytes):");
                                     let soft_limit = fs.space_soft_limit.get_or_insert(0);
-                                    if ui.add(egui::DragValue::new(soft_limit).prefix("软限制：")).changed()
+                                    if ui
+                                        .add(egui::DragValue::new(soft_limit).prefix("软限制："))
+                                        .changed()
                                         && *soft_limit == 0
                                     {
                                         fs.space_soft_limit = None;
@@ -4099,9 +5361,14 @@ impl DevicesPanel {
                 name: "qemu".to_string(),
                 driver_type: "qcow2".to_string(),
                 cache: Some("none".to_string()),
+                error_policy: None,
+                rerror_policy: None,
                 io: None,
                 ioeventfd: None,
                 event_idx: None,
+                copy_on_read: None,
+                discard: None,
+                detect_zeroes: None,
                 queues: None,
                 queue_size: None,
                 iothread: None,
@@ -4109,6 +5376,7 @@ impl DevicesPanel {
                 statistics: None,
                 latency_histogram: None,
                 discard_no_unref: None,
+                metadata_cache: None,
             }),
             source: Some(DiskSource {
                 file: Some("/var/lib/libvirt/images/disk.qcow2".to_string()),
@@ -4125,6 +5393,8 @@ impl DevicesPanel {
                 bus: Some("virtio".to_string()),
                 tray: None,
                 rotation_rate: None,
+                removable: None,
+                dpofua: None,
             }),
             readonly: None,
             geometry: None,
@@ -4149,7 +5419,11 @@ impl DevicesPanel {
         InterfaceConfig {
             interface_type: "bridge".to_string(),
             trust_guest_rx_filters: None,
-            mac: Some(MacAddress { address: Self::generate_mac() }),
+            mac: Some(MacAddress {
+                address: Self::generate_mac(),
+                mac_type: None,
+                current_address: None,
+            }),
             source: Some(InterfaceSource {
                 bridge: Some("virbr0".to_string()),
                 network: None,
@@ -4160,6 +5434,21 @@ impl DevicesPanel {
             alias: Some(AliasConfig { name: format!("net{}", index) }),
             boot: None,
             address: None,
+            bandwidth: None,
+            virtualport: None,
+            link: None,
+            target: None,
+            rom: None,
+            acpi: None,
+            backend: None,
+            driver: None,
+            tune: None,
+            guest: None,
+            portgroup: None,
+            vlan: None,
+            port: None,
+            ip: None,
+            port_forward: None,
         }
     }
 

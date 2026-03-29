@@ -18,16 +18,63 @@ pub fn write_serials<W: std::io::Write>(
         }
         writer.write_event(Event::Start(serial_elem)).map_err(|e| e.to_string())?;
 
+        // Source 配置
+        if let Some(ref source) = serial.source {
+            write_serial_source(writer, source)?;
+        }
+
+        // Target 配置
         if let Some(ref target) = serial.target {
-            if let Some(port) = target.port {
-                let mut target_elem = BytesStart::new("target");
-                target_elem.push_attribute(("port", port.to_string().as_str()));
-                writer.write_event(Event::Empty(target_elem)).map_err(|e| e.to_string())?;
+            let mut target_elem = BytesStart::new("target");
+            if let Some(ref target_type) = target.target_type {
+                target_elem.push_attribute(("type", target_type.as_str()));
             }
+            if let Some(ref port) = target.port {
+                target_elem.push_attribute(("port", port.to_string().as_str()));
+            }
+            writer.write_event(Event::Empty(target_elem)).map_err(|e| e.to_string())?;
+        }
+
+        // Log 配置
+        if let Some(ref log) = serial.log {
+            let mut log_elem = BytesStart::new("log");
+            log_elem.push_attribute(("file", log.file.as_str()));
+            if let Some(ref append) = log.append {
+                log_elem.push_attribute(("append", append.as_str()));
+            }
+            writer.write_event(Event::Empty(log_elem)).map_err(|e| e.to_string())?;
         }
 
         writer.write_event(Event::End(BytesEnd::new("serial"))).map_err(|e| e.to_string())?;
     }
+    Ok(())
+}
+
+/// 写入 SerialSource
+fn write_serial_source<W: std::io::Write>(
+    writer: &mut Writer<W>,
+    source: &crate::model::devices::SerialSource,
+) -> Result<(), String> {
+    let mut source_elem = BytesStart::new("source");
+    if let Some(ref path) = source.path {
+        source_elem.push_attribute(("path", path.as_str()));
+    }
+    if let Some(ref mode) = source.mode {
+        source_elem.push_attribute(("mode", mode.as_str()));
+    }
+    if let Some(ref host) = source.host {
+        source_elem.push_attribute(("host", host.as_str()));
+    }
+    if let Some(ref port) = source.port {
+        source_elem.push_attribute(("port", port.as_str()));
+    }
+    if let Some(ref service) = source.service {
+        source_elem.push_attribute(("service", service.as_str()));
+    }
+    if let Some(ref channel) = source.channel {
+        source_elem.push_attribute(("channel", channel.as_str()));
+    }
+    writer.write_event(Event::Empty(source_elem)).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -41,9 +88,25 @@ pub fn write_parallels<W: std::io::Write>(
         parallel_elem.push_attribute(("type", parallel.parallel_type.as_str()));
         writer.write_event(Event::Start(parallel_elem)).map_err(|e| e.to_string())?;
 
+        // Source 配置
+        if let Some(ref source) = parallel.source {
+            let mut source_elem = BytesStart::new("source");
+            if let Some(ref path) = source.path {
+                source_elem.push_attribute(("path", path.as_str()));
+            }
+            if let Some(ref mode) = source.mode {
+                source_elem.push_attribute(("mode", mode.as_str()));
+            }
+            writer.write_event(Event::Empty(source_elem)).map_err(|e| e.to_string())?;
+        }
+
+        // Target 配置
         if let Some(ref target) = parallel.target {
             let mut target_elem = BytesStart::new("target");
             target_elem.push_attribute(("port", target.port.to_string().as_str()));
+            if let Some(ref path) = target.path {
+                target_elem.push_attribute(("path", path.as_str()));
+            }
             writer.write_event(Event::Empty(target_elem)).map_err(|e| e.to_string())?;
         }
 
@@ -62,6 +125,31 @@ pub fn write_console<W: std::io::Write>(
         console_elem.push_attribute(("type", console.console_type.as_str()));
         writer.write_event(Event::Start(console_elem)).map_err(|e| e.to_string())?;
 
+        // Source 配置
+        if let Some(ref source) = console.source {
+            let mut source_elem = BytesStart::new("source");
+            if let Some(ref path) = source.path {
+                source_elem.push_attribute(("path", path.as_str()));
+            }
+            if let Some(ref mode) = source.mode {
+                source_elem.push_attribute(("mode", mode.as_str()));
+            }
+            if let Some(ref host) = source.host {
+                source_elem.push_attribute(("host", host.as_str()));
+            }
+            if let Some(ref port) = source.port {
+                source_elem.push_attribute(("port", port.as_str()));
+            }
+            if let Some(ref service) = source.service {
+                source_elem.push_attribute(("service", service.as_str()));
+            }
+            if let Some(ref channel) = source.channel {
+                source_elem.push_attribute(("channel", channel.as_str()));
+            }
+            writer.write_event(Event::Empty(source_elem)).map_err(|e| e.to_string())?;
+        }
+
+        // Target 配置
         if let Some(ref target) = console.target {
             let mut target_elem = BytesStart::new("target");
             target_elem.push_attribute(("type", target.target_type.as_str()));
@@ -69,6 +157,16 @@ pub fn write_console<W: std::io::Write>(
                 target_elem.push_attribute(("port", port.to_string().as_str()));
             }
             writer.write_event(Event::Empty(target_elem)).map_err(|e| e.to_string())?;
+        }
+
+        // Log 配置
+        if let Some(ref log) = console.log {
+            let mut log_elem = BytesStart::new("log");
+            log_elem.push_attribute(("file", log.file.as_str()));
+            if let Some(ref append) = log.append {
+                log_elem.push_attribute(("append", append.as_str()));
+            }
+            writer.write_event(Event::Empty(log_elem)).map_err(|e| e.to_string())?;
         }
 
         writer.write_event(Event::End(BytesEnd::new("console"))).map_err(|e| e.to_string())?;
